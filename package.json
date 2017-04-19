@@ -1,0 +1,24 @@
+{
+  "name": "internet_shopping",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+  "author": "Andrii Heptinh",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "1.0.2",
+    "body-parser": "1.17.1",
+    "cors": "2.8.3",
+    "express": "4.15.2",
+    "jwt-simple": "0.5.1",
+    "mongoose": "4.9.4",
+    "morgan": "1.8.1",
+    "nodemon": "1.11.0",
+    "passport": "0.3.2",
+    "passport-jwt": "2.2.1"
+  }
+}

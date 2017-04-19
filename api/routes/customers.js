@@ -1,0 +1,28 @@
+'use strict';
+module.exports = function (app, passport) {
+	var customers = require('../controllers/customers'),
+		config = require('../config/conf');
+
+	// customers Routes
+	app.route('/customers')
+		.get(passport.authenticate('jwt', config.jwtSession), customers.list_all_customers)
+		.post(customers.create_customer);
+
+	app.route('/authenticate')
+		.post(customers.authenticate_customer);
+	app.route('/logout')
+		.get(passport.authenticate('jwt', config.jwtSession), customers.logout_customer);
+
+	/**
+	 * Get / update / delete information about customer
+	 */
+	app.route('/customer')
+		.get(passport.authenticate('jwt', config.jwtSession), customers.read_customer_info)
+		.put(passport.authenticate('jwt', config.jwtSession), customers.update_customer)
+		.delete(passport.authenticate('jwt', config.jwtSession), customers.delete_customer);
+
+	app.route('/customer/:customerId')
+		.get(passport.authenticate('jwt', config.jwtSession), customers.read_customer_info)
+		.put(passport.authenticate('jwt', config.jwtSession), customers.update_customer)
+		.delete(passport.authenticate('jwt', config.jwtSession), customers.delete_customer);
+};
