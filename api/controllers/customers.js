@@ -24,7 +24,7 @@ exports.list_all_customers = function (req, res) {
 			respObj.response.msg = "Error listing customers";
 			res.send(respObj);
 		}
-		res.json(customers);
+		res.send(customers);
 	});
 };
 
@@ -48,7 +48,7 @@ exports.create_customer = function (req, res) {
 			}
 			res.send(respObj);
 		}
-		res.json(customer);
+		res.send(customer);
 	});
 };
 
@@ -65,7 +65,9 @@ exports.read_customer_info = function (req, res) {
 		.where({
 			'dwh_deleted': false
 		})
-		.select(config.technicalFields)
+		.select(Object.assign({}, config.technicalFields, {
+			'password': 0
+		}))
 		.exec(function (err, customer) {
 			if (err) {
 				console.error('[ERROR]', err.message);
@@ -74,7 +76,7 @@ exports.read_customer_info = function (req, res) {
 				res.send(respObj);
 			} else {
 				if (customer) {
-					res.json(customer);
+					res.send(customer);
 				} else {
 					console.warn('Customer not found');
 					respObj.success = false;
@@ -98,7 +100,9 @@ exports.update_customer = function (req, res) {
 	}, {
 		$set: req.body
 	}, {
-		fields: config.technicalFields
+		fields: Object.assign({}, config.technicalFields, {
+			'password': 0
+		})
 	}, function (err, customer) {
 		if (err) {
 			console.error('[ERROR]', err.message);
@@ -157,9 +161,15 @@ exports.delete_customer = function (req, res) {
  * @param  {Object} res Object that is used to send back desired HTTP response
  */
 exports.authenticate_customer = function (req, res) {
-	console.log(req.body.email, req.body.password);
-	CustomersDB.findOne({
-		email: req.body.email
+	CustomersDB.findOneAndUpdate({
+		'email': req.body.email,
+		'dwh_deleted': false
+	}, {
+		$set: {
+			'dwh_online': true
+		}
+	}, {
+		fields: config.technicalFields
 	}, function (err, customer) {
 		if (err) {
 			throw err;
@@ -176,11 +186,12 @@ exports.authenticate_customer = function (req, res) {
 					// if customer is found and password is right create a token
 					var token = jwt.encode(customer, config.jwtSecret);
 					// return the information including token as JSON
-					res.json({
+					var customerInfo = Object.assign({}, {
 						success: true,
-						token: 'JWT ' + token,
-						customerId: customer._id
-					});
+						token: 'JWT ' + token
+					}, customer._doc);
+					delete customerInfo.password;
+					res.send(customerInfo);
 				} else {
 					respObj.success = false;
 					respObj.response.msg = "Authentication failed. Wrong password";

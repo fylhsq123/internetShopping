@@ -1,86 +1,173 @@
+// ******* Get list of customers *******
+// Method GET
+// Header:
+//          Authorization: {AuthorizationToken}
+// URL: http://192.168.2.65:3000/customers
+
+
 // ******* USER Registration *******
 // Method POST
 // URL: http://192.168.2.65:3000/customers
-{
-    first_name: {
-        type: String,
-        required: true
-    },
-    last_name: {
-        type: String,
-        required: true
-    },
-    phone_number: {
-        type: String,
-        validate: {
-            validator: function(v) {
-                return /\d{3}-\d{3}-\d{4}/.test(v);
-            }
-        },
-        required: true
-    },
-    email: {
-        type: String,
-        validate: {
-            validator: function(v) {
-                return v.length ? /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(v) : true;
-            }
-        },
-        required: true
-    },
-    address: {
-        type: String,
-        required: true
-    },
-    city: {
-        type: String,
-        required: true
-    },
-    country: {
-        type: String,
-        default: "Ukraine"
-    },
-    zip_code: {
-        type: String,
-        required: true
-    },
-    date_of_birth: {
-        type: Date
-    },
-    password: {
-        type: String,
-        required: true
-    }
-}
+// Body:
+// {
+//     first_name: {
+//         type: String,
+//         required: true
+//     },
+//     last_name: {
+//         type: String,
+//         required: true
+//     },
+//     phone_number: {
+//         type: String,
+//         validate: {
+//             validator: function(v) {
+//                 return /\d+/.test(v);
+//             }
+//         },
+//         required: true
+//     },
+//     email: {
+//         type: String,
+//         validate: {
+//             validator: function(v) {
+//                 return v.length ? /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(v) : true;
+//             }
+//         },
+//         required: true
+//     },
+//     address: {
+//         type: String,
+//         required: true
+//     },
+//     city: {
+//         type: String,
+//         required: true
+//     },
+//     country: {
+//         type: String,
+//         default: "Ukraine"
+//     },
+//     zip_code: {
+//         type: String,
+//         required: true
+//     },
+//     date_of_birth: {
+//         type: Date
+//     },
+//     password: {
+//         type: String,
+//         required: true
+//     }
+// }
+
 
 // ******* Get list of coutries *******
 // Method GET
 // URL: http://192.168.2.65:3000/countries
 
+
 // ******* Get list of cities *******
 // Method GET
 // URL: http://192.168.2.65:3000/cities/:countryId
 
+
 // ******* USER Authentication *******
 // Method POST
-// URL: http://192.168.2.65:3000/customer/authenticate
-{
-    email: {
-        type: String,
-        validate: {
-            validator: function(v) {
-                return v.length ? /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(v) : true;
-            }
-        },
-        required: true
-    },
-    password: {
-        type: String,
-        required: true
-    }
-}
+// URL: http://192.168.2.65:3000/authenticate
+// Body:
+// {
+//     email: {
+//         type: String,
+//         validate: {
+//             validator: function(v) {
+//                 return v.length ? /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(v) : true;
+//             }
+//         },
+//         required: true
+//     },
+//     password: {
+//         type: String,
+//         required: true
+//     }
+// }
+
+
+// ******* USER Logout *******
+// Method GET
+// URL: http://192.168.2.65:3000/logout
+// Header:
+//          Authorization: {AuthorizationToken}
+
 
 // ******* Get USER information *******
 // Method GET
-// URL: http://192.168.2.65:3000/customers/:customerId
-{}
+// URL: http://192.168.2.65:3000/customer
+// Header:
+//          Authorization: {AuthorizationToken}
+
+
+// ******* Update USER information *******
+// Method PUT
+// URL: http://192.168.2.65:3000/customer
+// Header:
+//          Authorization: {AuthorizationToken}
+// Body:
+// {
+//     first_name: {
+//         type: String,
+//         required: true
+//     },
+//     last_name: {
+//         type: String,
+//         required: true
+//     },
+//     phone_number: {
+//         type: String,
+//         validate: {
+//             validator: function(v) {
+//                 return /\d+/.test(v);
+//             }
+//         },
+//         required: true
+//     },
+//     email: {
+//         type: String,
+//         validate: {
+//             validator: function(v) {
+//                 return v.length ? /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(v) : true;
+//             }
+//         },
+//         required: true
+//     },
+//     address: {
+//         type: String,
+//         required: true
+//     },
+//     city: {
+//         type: String,
+//         required: true
+//     },
+//     country: {
+//         type: String,
+//         default: "Ukraine"
+//     },
+//     zip_code: {
+//         type: String,
+//         required: true
+//     },
+//     date_of_birth: {
+//         type: Date
+//     },
+//     password: {
+//         type: String,
+//         required: true
+//     }
+// }
+
+
+// ******* Delete USER information *******
+// Method DELETE
+// URL: http://192.168.2.65:3000/customer
+// Header:
+//          Authorization: {AuthorizationToken}
