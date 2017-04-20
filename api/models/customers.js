@@ -56,6 +56,7 @@ var CustomerSchema = new Schema({
 		required: [
 			true, "Country code is required"
 		],
+		ref: 'CountriesCities',
 		default: "58f0d7c6716e0f67441b0b05"
 	},
 	zip_code: {
