@@ -15,9 +15,11 @@ var
 	// get models
 	customersModel = require('./api/models/customers'),
 	countriesCitiesModel = require('./api/models/countriesCities'),
+	categoriesModel = require('./api/models/categories'),
 	// get routes
 	customersRoutes = require('./api/routes/customers'),
-	countriesCitiesRoutes = require('./api/routes/countriesCities');
+	countriesCitiesRoutes = require('./api/routes/countriesCities'),
+	categoriesRoutes = require('./api/routes/categories');
 
 mongoose.Promise = global.Promise;
 
@@ -46,16 +48,17 @@ require('./api/config/passport')(passport, customersModel);
 customersRoutes(app, passport);
 
 // Countries and Cities Routes
-countriesCitiesRoutes(app, passport);
+countriesCitiesRoutes(app);
+
+categoriesRoutes(app);
 
 // Error handlers
 function logErrors(err, req, res, next) {
-	console.error(err.error.message);
+	console.error(err);
 	next(err);
 }
 
 function clientErrorHandler(err, req, res, next) {
-	console.log(err);
 	res.status(500)
 		.send({
 			"success": false,
