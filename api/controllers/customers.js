@@ -3,28 +3,29 @@
 var mongoose = require('mongoose'),
 	CustomersDB = mongoose.model('Customers'),
 	jwt = require('jwt-simple'),
-	config = require('../config/conf');
-var respObj = {
-	"success": false,
-	"response": {
-		"msg": ""
-	}
-};
+	config = require('../config/conf'),
+	respObj = {
+		"success": false,
+		"response": {
+			"msg": ""
+		}
+	};
 
 /**
  * Lists all valid customers that are registered
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
  */
-exports.list_all_customers = function (req, res) {
+exports.list_all_customers = function (req, res, next) {
 	CustomersDB.find({}, function (err, customers) {
 		if (err) {
-			console.error('[ERROR]', err);
-			respObj.success = false;
-			respObj.response.msg = "Error listing customers";
-			res.send(respObj);
+			next({
+				'msg': 'Error listing customers',
+				'err': err
+			});
+		} else {
+			res.send(customers);
 		}
-		res.send(customers);
 	});
 };
 
@@ -33,22 +34,28 @@ exports.list_all_customers = function (req, res) {
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
  */
-exports.create_customer = function (req, res) {
+exports.create_customer = function (req, res, next) {
 	var new_customer = new CustomersDB(req.body);
 	new_customer.save(function (err, customer) {
 		if (err) {
-			console.error('[ERROR]', err);
 			respObj.success = false;
 			if (err.name && err.name === "ValidationError") {
 				respObj.response.msg = err.errors;
+				res.send(respObj);
 			} else if (err.code === 11000) {
 				respObj.response.msg = "This email is alreay in use now";
+				res.send(respObj);
 			} else {
-				respObj.response.msg = "DB error";
+				next({
+					'msg': 'Error registering new customer',
+					'err': err
+				});
 			}
-			res.send(respObj);
+		} else {
+			res.send(Object.assign({}, customer, {
+				'success': true
+			}));
 		}
-		res.send(customer);
 	});
 };
 
@@ -57,7 +64,7 @@ exports.create_customer = function (req, res) {
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
  */
-exports.read_customer_info = function (req, res) {
+exports.read_customer_info = function (req, res, next) {
 	var customerId = (req.user.role && req.user.role === 'admin' && req.params.customerId) ?
 		req.params.customerId :
 		req.user._id;
@@ -70,10 +77,10 @@ exports.read_customer_info = function (req, res) {
 		}))
 		.exec(function (err, customer) {
 			if (err) {
-				console.error('[ERROR]', err.message);
-				respObj.success = false;
-				respObj.response.msg = "Error reading customer information";
-				res.send(respObj);
+				next({
+					'msg': 'Error reading customer information',
+					'err': err
+				});
 			} else {
 				if (customer) {
 					res.send(customer);
@@ -92,8 +99,10 @@ exports.read_customer_info = function (req, res) {
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
  */
-exports.update_customer = function (req, res) {
-	var customerId = (req.user.role && req.user.role === 'admin' && req.params.customerId) ? req.params.customerId : req.user._id;
+exports.update_customer = function (req, res, next) {
+	var customerId = (req.user.role && req.user.role === 'admin' && req.params.customerId) ?
+		req.params.customerId :
+		req.user._id;
 	CustomersDB.findOneAndUpdate({
 		'_id': customerId,
 		'dwh_deleted': false
@@ -105,9 +114,10 @@ exports.update_customer = function (req, res) {
 		})
 	}, function (err, customer) {
 		if (err) {
-			console.error('[ERROR]', err.message);
-			respObj.success = false;
-			respObj.response.msg = "Error updating information about customer";
+			next({
+				'msg': 'Error updating information about customer',
+				'err': err
+			});
 		} else {
 			if (customer) {
 				respObj.success = true;
@@ -117,8 +127,8 @@ exports.update_customer = function (req, res) {
 				respObj.success = false;
 				respObj.response.msg = "Customer not found";
 			}
+			res.send(respObj);
 		}
-		res.send(respObj);
 	});
 };
 
@@ -127,8 +137,10 @@ exports.update_customer = function (req, res) {
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
  */
-exports.delete_customer = function (req, res) {
-	var customerId = (req.user.role && req.user.role === 'admin' && req.params.customerId) ? req.params.customerId : req.user._id;
+exports.delete_customer = function (req, res, next) {
+	var customerId = (req.user.role && req.user.role === 'admin' && req.params.customerId) ?
+		req.params.customerId :
+		req.user._id;
 	CustomersDB.findOneAndUpdate({
 		'_id': customerId,
 		'dwh_deleted': false
@@ -138,9 +150,10 @@ exports.delete_customer = function (req, res) {
 		}
 	}, function (err, customer) {
 		if (err) {
-			console.error('[ERROR]', err.message);
-			respObj.success = false;
-			respObj.response.msg = "Error deleting customer";
+			next({
+				'msg': 'Error deleting customer',
+				'err': err
+			});
 		} else {
 			if (customer) {
 				respObj.success = true;
@@ -150,8 +163,8 @@ exports.delete_customer = function (req, res) {
 				respObj.success = false;
 				respObj.response.msg = "Customer not found";
 			}
+			res.send(respObj);
 		}
-		res.send(respObj);
 	});
 };
 
@@ -160,7 +173,7 @@ exports.delete_customer = function (req, res) {
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
  */
-exports.authenticate_customer = function (req, res) {
+exports.authenticate_customer = function (req, res, next) {
 	CustomersDB.findOneAndUpdate({
 		'email': req.body.email,
 		'dwh_deleted': false
@@ -172,7 +185,10 @@ exports.authenticate_customer = function (req, res) {
 		fields: config.technicalFields
 	}, function (err, customer) {
 		if (err) {
-			throw err;
+			next({
+				'msg': 'Customer authorization error',
+				'err': err
+			});
 		}
 
 		if (!customer) {
@@ -202,7 +218,7 @@ exports.authenticate_customer = function (req, res) {
 	});
 }
 
-exports.logout_customer = function (req, res) {
+exports.logout_customer = function (req, res, next) {
 	CustomersDB.findOneAndUpdate({
 		'_id': req.user._id,
 		'dwh_deleted': false
@@ -212,9 +228,10 @@ exports.logout_customer = function (req, res) {
 		}
 	}, function (err, customer) {
 		if (err) {
-			console.error('[ERROR]', err.message);
-			respObj.success = false;
-			respObj.response.msg = "Error logging out customer";
+			next({
+				'msg': 'Error logging out customer',
+				'err': err
+			});
 		} else {
 			if (customer) {
 				respObj.success = true;
@@ -224,7 +241,7 @@ exports.logout_customer = function (req, res) {
 				respObj.success = false;
 				respObj.response.msg = "Customer not found";
 			}
+			res.send(respObj);
 		}
-		res.send(respObj);
 	});
 };

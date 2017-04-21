@@ -1,15 +1,23 @@
-var express = require('express'),
-	app = express(),
+var
+	// load modules
+	express = require('express'),
 	bodyParser = require('body-parser'),
 	morgan = require('morgan'),
 	mongoose = require('mongoose'),
 	passport = require('passport'),
 	jwt = require('jwt-simple'),
 	cors = require('cors'),
-	config = require('./api/config/conf'), // get config file
+	// get config file
+	config = require('./api/config/conf'),
+	// parameters and initialization
 	port = process.env.PORT || 3000,
-	Customers = require('./api/models/customers'),
-	CountriesCities = require('./api/models/countriesCities');
+	app = express(),
+	// get models
+	customersModel = require('./api/models/customers'),
+	countriesCitiesModel = require('./api/models/countriesCities'),
+	// get routes
+	customersRoutes = require('./api/routes/customers'),
+	countriesCitiesRoutes = require('./api/routes/countriesCities');
 
 mongoose.Promise = global.Promise;
 
@@ -25,35 +33,50 @@ app.use(morgan('combined'));
 // Use the passport package in our application
 app.use(passport.initialize());
 
+// Use CORS
 app.use(cors());
 
 // connect to database
 mongoose.connect(config.database);
 
 // pass passport for configuration
-require('./api/config/passport')(passport, Customers);
-
-// global controller
-// app.post('/*', function(req, res, next) {
-//     console.log("test");
-//     res.header('Access-Control-Allow-Origin', '*');
-//     next();
-// });
+require('./api/config/passport')(passport, customersModel);
 
 // Customer Routes
-var customersRoutes = require('./api/routes/customers');
 customersRoutes(app, passport);
 
 // Countries and Cities Routes
-var countriesCitiesRoutes = require('./api/routes/countriesCities');
 countriesCitiesRoutes(app, passport);
 
+// Error handlers
+function logErrors(err, req, res, next) {
+	console.error(err.error.message);
+	next(err);
+}
+
+function clientErrorHandler(err, req, res, next) {
+	console.log(err);
+	res.status(500)
+		.send({
+			"success": false,
+			"response": {
+				"msg": err.msg
+			}
+		});
+
+}
+app.use(logErrors);
+app.use(clientErrorHandler);
+
+// handle requests with wrong address
 app.use(function (req, res) {
-	res.status(404).send({
-		url: "'" + req.originalUrl + "' not found"
-	});
+	res.status(404)
+		.send({
+			url: "'" + req.originalUrl + "' not found"
+		});
 });
 
+// start server
 app.listen(port, function () {
 	console.log('RESTful API server started on: ' + port);
 });
