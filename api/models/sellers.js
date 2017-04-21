@@ -1,16 +1,16 @@
 'use strict';
 var mongoose = require('mongoose'),
-    Schema = mongoose.Schema;
+	Schema = mongoose.Schema;
 
 var SellersSchema = new Schema({
-    name: {
-        type: String,
-        required: true
-    },
-    description: {
-        type: String
-    },
-    phone_number: {
+	name: {
+		type: String,
+		required: true
+	},
+	description: {
+		type: String
+	},
+	phone_number: {
 		type: String,
 		validate: {
 			validator: function (v) {
@@ -44,14 +44,14 @@ var SellersSchema = new Schema({
 		required: [
 			true, "Country code is required"
 		],
-        ref: 'CountriesCities',
+		ref: 'CountriesCities',
 		default: "58f0d7c6716e0f67441b0b05"
 	},
 	zip_code: {
 		type: String,
 		required: [true, "Zip-code is required"]
 	},
-    password: {
+	password: {
 		type: String,
 		required: true
 	},
