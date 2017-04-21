@@ -16,12 +16,7 @@ module.exports = function (app, passport) {
 	/**
 	 * Get / update / delete information about customer
 	 */
-	app.route('/customer')
-		.get(passport.authenticate('jwt', config.jwtSession), customers.read_customer_info)
-		.put(passport.authenticate('jwt', config.jwtSession), customers.update_customer)
-		.delete(passport.authenticate('jwt', config.jwtSession), customers.delete_customer);
-
-	app.route('/customer/:customerId')
+	app.route(['/customer', '/customer/:customerId'])
 		.get(passport.authenticate('jwt', config.jwtSession), customers.read_customer_info)
 		.put(passport.authenticate('jwt', config.jwtSession), customers.update_customer)
 		.delete(passport.authenticate('jwt', config.jwtSession), customers.delete_customer);
