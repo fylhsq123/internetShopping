@@ -1,0 +1,13 @@
+{
+    "passfail": false,
+    "maxerr": 50,
+    "strict": true,
+    "globalstrict": true,
+    "undef": true,
+    "unused": false,
+    "validthis": true,
+    "devel": true,
+    "expr": true,
+    "node": true,
+    "globals": {}
+}

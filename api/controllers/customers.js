@@ -75,6 +75,7 @@ exports.read_customer_info = function (req, res, next) {
 		.select(Object.assign({}, config.technicalFields, {
 			'password': 0
 		}))
+		.populate('country', 'country')
 		.exec(function (err, customer) {
 			if (err) {
 				next({
@@ -174,49 +175,46 @@ exports.delete_customer = function (req, res, next) {
  * @param  {Object} res Object that is used to send back desired HTTP response
  */
 exports.authenticate_customer = function (req, res, next) {
-	CustomersDB.findOneAndUpdate({
-		'email': req.body.email,
-		'dwh_deleted': false
-	}, {
-		$set: {
-			'dwh_online': true
-		}
-	}, {
-		fields: config.technicalFields
-	}, function (err, customer) {
-		if (err) {
-			next({
-				'msg': 'Customer authorization error',
-				'err': err
-			});
-		}
+	CustomersDB.findOne({
+			'email': req.body.email,
+			'dwh_deleted': false
+		})
+		.select(config.technicalFields)
+		.populate('country', 'country')
+		.exec(function (err, customer) {
+			if (err) {
+				next({
+					'msg': 'Customer authorization error',
+					'err': err
+				});
+			}
 
-		if (!customer) {
-			respObj.success = false;
-			respObj.response.msg = "Authentication failed. Customer not found";
-			res.send(respObj);
-		} else {
-			// check if password matches
-			customer.comparePassword(req.body.password, function (err, isMatch) {
-				if (isMatch && !err) {
-					// if customer is found and password is right create a token
-					var token = jwt.encode(customer, config.jwtSecret);
-					// return the information including token as JSON
-					var customerInfo = Object.assign({}, {
-						success: true,
-						token: 'JWT ' + token
-					}, customer._doc);
-					delete customerInfo.password;
-					res.send(customerInfo);
-				} else {
-					respObj.success = false;
-					respObj.response.msg = "Authentication failed. Wrong password";
-					res.send(respObj);
-				}
-			});
-		}
-	});
-}
+			if (!customer) {
+				respObj.success = false;
+				respObj.response.msg = "Authentication failed. Customer not found";
+				res.send(respObj);
+			} else {
+				// check if password matches
+				customer.comparePassword(req.body.password, function (err, isMatch) {
+					if (isMatch && !err) {
+						// if customer is found and password is right create a token
+						var token = jwt.encode(customer, config.jwtSecret);
+						// return the information including token as JSON
+						var customerInfo = Object.assign({}, {
+							success: true,
+							token: 'JWT ' + token
+						}, customer._doc);
+						delete customerInfo.password;
+						res.send(customerInfo);
+					} else {
+						respObj.success = false;
+						respObj.response.msg = "Authentication failed. Wrong password";
+						res.send(respObj);
+					}
+				});
+			}
+		});
+};
 
 exports.logout_customer = function (req, res, next) {
 	CustomersDB.findOneAndUpdate({

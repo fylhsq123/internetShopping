@@ -1,4 +1,5 @@
 'use strict';
+
 module.exports = function (app) {
 	var countriesCities = require('../controllers/countriesCities');
 

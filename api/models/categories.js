@@ -1,8 +1,13 @@
 'use strict';
+
 var mongoose = require('mongoose'),
 	Schema = mongoose.Schema;
 
 var subCategoriesSchema = new Schema({
+	_id: {
+		type: Schema.Types.ObjectId,
+		auto: true
+	},
 	name: {
 		type: String,
 		required: true
@@ -13,6 +18,10 @@ var subCategoriesSchema = new Schema({
 });
 
 var CategoriesSchema = new Schema({
+	_id: {
+		type: Schema.Types.ObjectId,
+		auto: true
+	},
 	name: {
 		type: String,
 		required: true

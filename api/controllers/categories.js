@@ -1,12 +1,10 @@
 'use strict';
 
-
 var mongoose = require('mongoose'),
 	Categories = mongoose.model('Categories');
 
-
 exports.list_all_categoies = function (req, res, next) {
-	Categories.find({}, 'name', function (err, categories) {
+	Categories.find({}, '_id name subCategories._id subCategories.name', function (err, categories) {
 		if (err) {
 			next({
 				'msg': 'Error reading categories',

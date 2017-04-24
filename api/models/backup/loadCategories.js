@@ -1,8 +1,10 @@
 var MongoClient = require('mongodb')
 	.MongoClient,
-	config = require('../../config/conf');
+	ObjectId = require('mongodb')
+	.ObjectID
+config = require('../../config/conf');
 
-
+console.log(typeof ObjectId, ObjectId);
 
 var insertCategories = function (db, callback) {
 	var categories = db.collection('categories');
@@ -13,16 +15,19 @@ var insertCategories = function (db, callback) {
 				"name": "Electronics",
 				"description": "Electronics",
 				"subCategories": [{
+					"_id": new ObjectId(),
 					"dwh_modified_date": new Date(),
 					"dwh_created_date": new Date(),
 					"name": "Cell phones",
 					"description": "Cell phones"
 				}, {
+					"_id": new ObjectId(),
 					"dwh_modified_date": new Date(),
 					"dwh_created_date": new Date(),
 					"name": "Laptops",
 					"description": "Laptops"
 				}, {
+					"_id": new ObjectId(),
 					"dwh_modified_date": new Date(),
 					"dwh_created_date": new Date(),
 					"name": "Tablets",
@@ -35,11 +40,13 @@ var insertCategories = function (db, callback) {
 				"name": "Home & Garden",
 				"description": "Home & Garden",
 				"subCategories": [{
+					"_id": new ObjectId(),
 					"dwh_modified_date": new Date(),
 					"dwh_created_date": new Date(),
 					"name": "Home decor",
 					"description": "Home decor"
 				}, {
+					"_id": new ObjectId(),
 					"dwh_modified_date": new Date(),
 					"dwh_created_date": new Date(),
 					"name": "Tools",

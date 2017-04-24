@@ -1,5 +1,6 @@
 'use strict';
-module.exports = function (app, passport) {
+
+module.exports = function (app) {
 	var categories = require('../controllers/categories');
 
 	// countries Routes

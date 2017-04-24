@@ -1,5 +1,8 @@
-var JwtStrategy = require('passport-jwt').Strategy,
-	ExtractJwt = require('passport-jwt').ExtractJwt,
+'use strict';
+var JwtStrategy = require('passport-jwt')
+	.Strategy,
+	ExtractJwt = require('passport-jwt')
+	.ExtractJwt,
 	config = require('../config/conf'); // get db config file
 
 module.exports = function (passport, Customers) {

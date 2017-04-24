@@ -1,3 +1,5 @@
+'use strict';
+
 var
 	// load modules
 	express = require('express'),
@@ -16,6 +18,7 @@ var
 	customersModel = require('./api/models/customers'),
 	countriesCitiesModel = require('./api/models/countriesCities'),
 	categoriesModel = require('./api/models/categories'),
+	rolesModel = require('./api/models/roles'),
 	// get routes
 	customersRoutes = require('./api/routes/customers'),
 	countriesCitiesRoutes = require('./api/routes/countriesCities'),
@@ -50,7 +53,11 @@ customersRoutes(app, passport);
 // Countries and Cities Routes
 countriesCitiesRoutes(app);
 
+// Categories Routes
 categoriesRoutes(app);
+
+// Sellers Routes
+//sellersRoutes(app, passport);
 
 // Error handlers
 function logErrors(err, req, res, next) {

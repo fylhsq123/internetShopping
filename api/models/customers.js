@@ -1,4 +1,5 @@
 'use strict';
+
 var mongoose = require('mongoose'),
 	bcrypt = require('bcrypt'),
 	Schema = mongoose.Schema;
@@ -37,7 +38,7 @@ var CustomerSchema = new Schema({
 		validate: {
 			validator: function (v) {
 				return v.length ?
-					/^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(v) :
+					/^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(v) : //TODO remove
 					true;
 			},
 			message: "Invalid email"
@@ -77,6 +78,12 @@ var CustomerSchema = new Schema({
 	dwh_deleted: {
 		type: Boolean,
 		default: false
+	},
+	role_id: {
+		type: Schema.Types.ObjectId,
+		required: true,
+		ref: 'Roles',
+		default: "58fdf368746c70e8a1759a55"
 	}
 }, {
 	timestamps: {
@@ -99,7 +106,7 @@ CustomerSchema.pre('save', function (next) {
 				if (user.isNew) {
 					var d = new Date();
 					user.personal_key = d.getTime();
-					user._id = mongoose.Types.ObjectId()
+					user._id = mongoose.Types.ObjectId();
 				}
 				user.password = hash;
 				next();

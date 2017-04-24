@@ -1,4 +1,5 @@
 'use strict';
+
 module.exports = function (app, passport) {
 	var customers = require('../controllers/customers'),
 		config = require('../config/conf');
