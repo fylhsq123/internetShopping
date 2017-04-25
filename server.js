@@ -7,7 +7,7 @@ var
 	morgan = require('morgan'),
 	mongoose = require('mongoose'),
 	passport = require('passport'),
-	jwt = require('jwt-simple'),
+	//jwt = require('jwt-simple'),
 	cors = require('cors'),
 	// get config file
 	config = require('./api/config/conf'),
@@ -19,10 +19,12 @@ var
 	countriesCitiesModel = require('./api/models/countriesCities'),
 	categoriesModel = require('./api/models/categories'),
 	rolesModel = require('./api/models/roles'),
+	productsModel = require('./api/models/products'),
 	// get routes
 	customersRoutes = require('./api/routes/customers'),
 	countriesCitiesRoutes = require('./api/routes/countriesCities'),
-	categoriesRoutes = require('./api/routes/categories');
+	categoriesRoutes = require('./api/routes/categories'),
+	productsRoutes = require('./api/routes/products');
 
 mongoose.Promise = global.Promise;
 
@@ -56,6 +58,9 @@ countriesCitiesRoutes(app);
 // Categories Routes
 categoriesRoutes(app);
 
+// Products Routes
+productsRoutes(app, passport);
+
 // Sellers Routes
 //sellersRoutes(app, passport);
 
@@ -73,7 +78,7 @@ function clientErrorHandler(err, req, res, next) {
 				"msg": err.msg
 			}
 		});
-
+	next();
 }
 app.use(logErrors);
 app.use(clientErrorHandler);
