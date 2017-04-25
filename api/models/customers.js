@@ -38,7 +38,7 @@ var CustomerSchema = new Schema({
 		validate: {
 			validator: function (v) {
 				return v.length ?
-					/^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/.test(v) : //TODO remove
+					/\S+@\S+/.test(v) :
 					true;
 			},
 			message: "Invalid email"
