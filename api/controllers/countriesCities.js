@@ -3,34 +3,30 @@
 var mongoose = require('mongoose'),
 	CountriesCities = mongoose.model('CountriesCities');
 
-exports.list_all_countries = function (req, res) {
+exports.list_all_countries = function (req, res, next) {
 	CountriesCities.find({}, 'country', function (err, countries) {
 		if (err) {
-			console.error(err);
-			res.send({
-				"success": false,
-				"response": {
-					"msg": "Error reading countries"
-				}
+			next({
+				'msg': 'Error reading countries',
+				'err': err
 			});
+		} else {
+			res.json(countries);
 		}
-		res.json(countries);
 	});
 };
 
-exports.list_all_cities = function (req, res) {
+exports.list_all_cities = function (req, res, next) {
 	CountriesCities.findById({
 		"_id": req.params.countryId
 	}, 'cities', function (err, cities) {
 		if (err) {
-			console.error(err);
-			res.send({
-				"success": false,
-				"response": {
-					"msg": "Error reading cities"
-				}
+			next({
+				'msg': 'Error reading cities',
+				'err': err
 			});
+		} else {
+			res.json(cities);
 		}
-		res.json(cities);
 	});
 };
