@@ -2,6 +2,7 @@
 
 var mongoose = require('mongoose'),
 	CustomersDB = mongoose.model('Customers'),
+	Roles = mongoose.model('Roles'),
 	jwt = require('jwt-simple'),
 	config = require('../config/conf'),
 	respObj = {
@@ -15,16 +16,34 @@ var mongoose = require('mongoose'),
  * Lists all valid customers that are registered
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
+ * @param  {Function} next Function that passes control to the next matching route
  */
 exports.list_all_customers = function (req, res, next) {
-	CustomersDB.find({}, function (err, customers) {
+	Roles.findById(req.user.role_id, function (err, role) {
 		if (err) {
 			next({
-				'msg': 'Error listing customers',
+				'msg': 'Error getting roles',
 				'err': err
 			});
 		} else {
-			res.send(customers);
+			if (role && role.type === 'admin') {
+				CustomersDB.find({}, Object.assign({}, config.technicalFields, {
+					'password': 0
+				}), function (err, customers) {
+					if (err) {
+						next({
+							'msg': 'Error listing customers',
+							'err': err
+						});
+					} else {
+						res.send(customers);
+					}
+				});
+			} else {
+				respObj.success = false;
+				respObj.response.msg = 'You are not authorized to perform this action';
+				res.status(403).send(respObj);
+			}
 		}
 	});
 };
@@ -33,6 +52,7 @@ exports.list_all_customers = function (req, res, next) {
  * Method is used to create/register new customer
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
+ * @param  {Function} next Function that passes control to the next matching route
  */
 exports.create_customer = function (req, res, next) {
 	var new_customer = new CustomersDB(req.body);
@@ -41,10 +61,10 @@ exports.create_customer = function (req, res, next) {
 			respObj.success = false;
 			if (err.name && err.name === "ValidationError") {
 				respObj.response.msg = err.errors;
-				res.send(respObj);
+				res.status(400).send(respObj);
 			} else if (err.code === 11000) {
 				respObj.response.msg = "This email is alreay in use now";
-				res.send(respObj);
+				res.status(409).send(respObj);
 			} else {
 				next({
 					'msg': 'Error registering new customer',
@@ -52,9 +72,17 @@ exports.create_customer = function (req, res, next) {
 				});
 			}
 		} else {
-			res.send(Object.assign({}, customer, {
+			var response = Object.assign({}, customer._doc, {
 				'success': true
-			}));
+			});
+			delete response.dwh_deleted;
+			delete response.dwh_online;
+			delete response.dwh_modified_date;
+			delete response.dwh_created_date;
+			delete response.personal_key;
+			delete response.password;
+			delete response.role_id;
+			res.status(201).send(response);
 		}
 	});
 };
@@ -63,19 +91,18 @@ exports.create_customer = function (req, res, next) {
  * Method is used to read information about customer
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
+ * @param  {Function} next Function that passes control to the next matching route
  */
 exports.read_customer_info = function (req, res, next) {
-	var customerId = (req.user.role && req.user.role === 'admin' && req.params.customerId) ?
-		req.params.customerId :
-		req.user._id;
-	CustomersDB.findById(customerId)
+	CustomersDB.findById(req.user._id)
 		.where({
 			'dwh_deleted': false
 		})
 		.select(Object.assign({}, config.technicalFields, {
 			'password': 0
 		}))
-		.populate('country', 'country')
+		.populate({path: 'country', select: 'country'})
+		.populate({path: 'role_id', select: '-_id name'})
 		.exec(function (err, customer) {
 			if (err) {
 				next({
@@ -89,7 +116,7 @@ exports.read_customer_info = function (req, res, next) {
 					console.warn('Customer not found');
 					respObj.success = false;
 					respObj.response.msg = "Customer not found";
-					res.send(respObj);
+					res.status(400).send(respObj);
 				}
 			}
 		});
@@ -99,13 +126,11 @@ exports.read_customer_info = function (req, res, next) {
  * Method is used to update information about customer
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
+ * @param  {Function} next Function that passes control to the next matching route
  */
 exports.update_customer = function (req, res, next) {
-	var customerId = (req.user.role && req.user.role === 'admin' && req.params.customerId) ?
-		req.params.customerId :
-		req.user._id;
 	CustomersDB.findOneAndUpdate({
-		'_id': customerId,
+		'_id': req.user._id,
 		'dwh_deleted': false
 	}, {
 		$set: req.body
@@ -123,12 +148,13 @@ exports.update_customer = function (req, res, next) {
 			if (customer) {
 				respObj.success = true;
 				respObj.response.msg = "Information about customer was successfully updated";
+				res.send(respObj);
 			} else {
 				console.warn('Customer not found');
 				respObj.success = false;
 				respObj.response.msg = "Customer not found";
+				res.status(400).send(respObj);
 			}
-			res.send(respObj);
 		}
 	});
 };
@@ -137,13 +163,11 @@ exports.update_customer = function (req, res, next) {
  * Method is used to delete customer. Customer will not be deleted, just marked 'dwh_deleted' to 'true'
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
+ * @param  {Function} next Function that passes control to the next matching route
  */
 exports.delete_customer = function (req, res, next) {
-	var customerId = (req.user.role && req.user.role === 'admin' && req.params.customerId) ?
-		req.params.customerId :
-		req.user._id;
 	CustomersDB.findOneAndUpdate({
-		'_id': customerId,
+		'_id': req.user._id,
 		'dwh_deleted': false
 	}, {
 		$set: {
@@ -159,12 +183,13 @@ exports.delete_customer = function (req, res, next) {
 			if (customer) {
 				respObj.success = true;
 				respObj.response.msg = "Customer successfully deleted";
+				res.send(respObj);
 			} else {
 				console.warn('Customer not found');
 				respObj.success = false;
 				respObj.response.msg = "Customer not found";
+				res.status(400).send(respObj);
 			}
-			res.send(respObj);
 		}
 	});
 };
@@ -173,6 +198,7 @@ exports.delete_customer = function (req, res, next) {
  * Method is used to authenticate customer
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
+ * @param  {Function} next Function that passes control to the next matching route
  */
 exports.authenticate_customer = function (req, res, next) {
 	CustomersDB.findOne({
@@ -192,7 +218,7 @@ exports.authenticate_customer = function (req, res, next) {
 			if (!customer) {
 				respObj.success = false;
 				respObj.response.msg = "Authentication failed. Customer not found";
-				res.send(respObj);
+				res.status(403).send(respObj);
 			} else {
 				// check if password matches
 				customer.comparePassword(req.body.password, function (err, isMatch) {
@@ -209,13 +235,19 @@ exports.authenticate_customer = function (req, res, next) {
 					} else {
 						respObj.success = false;
 						respObj.response.msg = "Authentication failed. Wrong password";
-						res.send(respObj);
+						res.status(403).send(respObj);
 					}
 				});
 			}
 		});
 };
 
+/**
+ * Method is used to logout customer
+ * @param  {Object} req Object containing information about the HTTP request
+ * @param  {Object} res Object that is used to send back desired HTTP response
+ * @param  {Function} next Function that passes control to the next matching route
+ */
 exports.logout_customer = function (req, res, next) {
 	CustomersDB.findOneAndUpdate({
 		'_id': req.user._id,
@@ -239,7 +271,7 @@ exports.logout_customer = function (req, res, next) {
 				respObj.success = false;
 				respObj.response.msg = "Customer not found";
 			}
-			res.send(respObj);
+			res.status(400).send(respObj);
 		}
 	});
 };
