@@ -186,7 +186,40 @@ Header:
 ### List products [/products]
 **Get list of all products [GET]**
 
+### List products [/products/bysubcategory/{subcategoryId}/{sortBy}/{sortOrder}]
+**Get list of products with specified subcategory [GET]**
++ Parameters
+
+    + subcategoryId: 58fdb56d93c22716c88234bf (required) - Unique identifier for a subcategory
+    + sortBy: "name" (optional) - Name of the field which will be use to sort by
+    + sortOrder: ["asc", "desc"] (optional) - Sort order
+
+### List products [/products/byseller/{sellerId}/{sortBy}/{sortOrder}]
+**Get list of products with specified seller [GET]**
++ Parameters
+
+    + sellerId: 58f7517043fde1207c1562a2 (required) - Unique identifier for a seller
+    + sortBy: "name" (optional) - Name of the field which will be use to sort by
+    + sortOrder: ["asc", "desc"] (optional) - Sort order
+
+### List products [/products/bysellerandsubcategory/{sellerId}/{subcategoryId}/{sortBy}/{sortOrder}]
+**Get list of products with specified seller and subcategory [GET]**
++ Parameters
+
+    + sellerId: 58f7517043fde1207c1562a2 (required) - Unique identifier for a seller
+    + subcategoryId: 58fdb56d93c22716c88234bf (required) - Unique identifier for a subcategory
+    + sortBy: "name" (optional) - Name of the field which will be use to sort by
+    + sortOrder: ["asc", "desc"] (optional) - Sort order
+
+### Get general info about product [/products/{productId}]
+**Get information about product which is available for unauthorized users [GET]**
++ Parameters
+
+    + productId: 59009df29cf77d3a40479fda (required) - Unique identifier for a product
+
+### Managing products [/product]
 **Create new product [POST]**
+
 Header:
 ```javascript
     Authorization: {AuthorizationToken}
@@ -233,29 +266,4 @@ Body:
     }
 }
 ```
-
-### List products [/products/bysubcategory/{subcategoryId}/{sortBy}/{sortOrder}]
-**Get list of products with specified subcategory [GET]**
-+ Parameters
-
-    + subcategoryId: 58fdb56d93c22716c88234bf (required) - Unique identifier for a subcategory
-    + sortBy: "name" (optional) - Name of the field which will be use to sort by
-    + sortOrder: ["asc", "desc"] (optional) - Sort order
-
-### List products [/products/byseller/{sellerId}/{sortBy}/{sortOrder}]
-**Get list of products with specified seller [GET]**
-+ Parameters
-
-    + sellerId: 58f7517043fde1207c1562a2 (required) - Unique identifier for a seller
-    + sortBy: "name" (optional) - Name of the field which will be use to sort by
-    + sortOrder: ["asc", "desc"] (optional) - Sort order
-
-### List products [/products/bysellerandsubcategory/{sellerId}/{subcategoryId}/{sortBy}/{sortOrder}]
-**Get list of products with specified seller and subcategory [GET]**
-+ Parameters
-
-    + sellerId: 58f7517043fde1207c1562a2 (required) - Unique identifier for a seller
-    + subcategoryId: 58fdb56d93c22716c88234bf (required) - Unique identifier for a subcategory
-    + sortBy: "name" (optional) - Name of the field which will be use to sort by
-    + sortOrder: ["asc", "desc"] (optional) - Sort order
 
