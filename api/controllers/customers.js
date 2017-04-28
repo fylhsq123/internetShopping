@@ -206,7 +206,8 @@ exports.authenticate_customer = function (req, res, next) {
 			'dwh_deleted': false
 		})
 		.select(config.technicalFields)
-		.populate('country', 'country')
+		.populate({path: 'country', select: 'country'})
+		.populate({path: 'role_id', select: '-_id name'})
 		.exec(function (err, customer) {
 			if (err) {
 				next({
