@@ -18,12 +18,13 @@ var ProductsSchema = new Schema({
     subcategory_id: {
         type: Schema.Types.ObjectId,
         required: true,
-        rel: 'Categories'
+        ref: 'Categories',
+        refPath: '_id'
     },
     seller_id: {
         type: Schema.Types.ObjectId,
         required: true,
-        rel: 'Customers'
+        ref: 'Customers'
     },
     count_bought: {
         type: Number,
@@ -49,11 +50,29 @@ var ProductsSchema = new Schema({
     timestamps: {
         createdAt: 'dwh_created_date',
         updatedAt: 'dwh_modified_date'
+    },
+    toObject: {
+        virtuals: true
+    },
+    toJSON: {
+        virtuals: true
     }
 });
 
 ProductsSchema.virtual('is_available').get(function () {
     return this.count_bought - this.count_sold > 0 ? true : false;
+});
+
+ProductsSchema.virtual('category', {
+    ref: 'Categories',
+    localField: 'subcategory_id',
+    foreignField: '_id'
+});
+
+ProductsSchema.virtual('seller', {
+    ref: 'Customers',
+    localField: 'seller_id',
+    foreignField: '_id'
 });
 
 module.exports = mongoose.model('Products', ProductsSchema);

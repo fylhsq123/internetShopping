@@ -21,13 +21,15 @@ function _isObjectEmpty(obj) {
 }
 
 /**
- * Lists all valid products that are registered
+ * Lists valid products that are registered using filter that are specified in request
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.list_all_products = function (req, res, next) {
-    var searchCondition = {'dwh_deleted': false},
+    var searchCondition = {
+            'dwh_deleted': false
+        },
         orderCondition = {};
     if (!_isObjectEmpty(req.params)) {
         var params = req.params;
@@ -37,26 +39,44 @@ exports.list_all_products = function (req, res, next) {
         if (params.subcategoryId) {
             searchCondition.subcategory_id = params.subcategoryId;
         }
+        if (params.productId) {
+            searchCondition._id = params.productId;
+        }
         if (params.sortBy && params.sortOrder) {
             orderCondition[params.sortBy] = params.sortOrder === 'desc' ? -1 : 1;
         }
     }
-    Products.find(searchCondition).select('_id name description image subcategory_id seller_id').sort(orderCondition).exec(function (err, products) {
-        if (err) {
-            next({
-                'msg': 'Error reading products',
-                'err': err
-            });
-        } else {
-            if (products.length === 0) {
-                respObj.success = false;
-                respObj.response.msg = 'Products were not found';
-                res.status(404).send(respObj);
-            } else {
-                res.send(products);
+    Products.find(searchCondition)
+        .where({
+            'dwh_deleted': false
+        })
+        .select('_id name description image subcategory_id seller_id is_available')
+        .populate('seller', 'first_name last_name')
+        .populate({
+            path: 'category',
+            select: '_id name description parent_id',
+            populate: {
+                path: 'parent',
+                select: '_id name description'
             }
-        }
-    });
+        })
+        .sort(orderCondition)
+        .exec(function (err, products) {
+            if (err) {
+                next({
+                    'msg': 'Error reading products',
+                    'err': err
+                });
+            } else {
+                if (products.length === 0) {
+                    respObj.success = false;
+                    respObj.response.msg = 'Products were not found';
+                    res.status(404).send(respObj);
+                } else {
+                    res.send(products);
+                }
+            }
+        });
 };
 
 /**
@@ -88,7 +108,7 @@ exports.create_new_product = function (req, res, next) {
                             });
                         }
                     } else {
-                        var response = Object.assign({}, product._doc, {
+                        var response = Object.assign({}, product.toObject(), {
                             'success': true
                         });
                         delete response.dwh_deleted;
@@ -106,50 +126,13 @@ exports.create_new_product = function (req, res, next) {
     });
 };
 
-exports.read_general_product_info = function (req, res, next) {
-    var fieldsToRemove = Object.assign({}, config.technicalFields, {
-        'count_bought': 0,
-        'count_sold': 0,
-        'price_bought': 0
-    });
-    Products.findById(req.params.productId)
-        .where({
-            'dwh_deleted': false
-        })
-        .select(fieldsToRemove)
-        // 	.populate({path: 'role_id', select: '-_id name'})
-        .exec(function (err, product) {
-            if (err) {
-                next({
-                    'msg': 'Error reading product information',
-                    'err': err
-                });
-            } else {
-                if (product) {
-                    res.send(Object.assign({}, product._doc, {
-                        'is_available': product.is_available
-                    }));
-                } else {
-                    console.warn('Product not found');
-                    respObj.success = false;
-                    respObj.response.msg = "Product not found";
-                    res.status(404).send(respObj);
-                }
-            }
-        });
-};
-
 /**
- * Method is used to read information about product
+ * Method is used to read detailed information about product which is useful for seller
  * @param  {Object} req Object containing information about the HTTP request
  * @param  {Object} res Object that is used to send back desired HTTP response
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.read_product_info = function (req, res, next) {
-    console.log(req.user);
-    req.user = {
-        role_id: "58f9c8d7f18c6738304061eb"
-    };
     Roles.findById(req.user.role_id, function (err, role) {
         if (err) {
             next({
@@ -158,38 +141,43 @@ exports.read_product_info = function (req, res, next) {
             });
         } else {
             var fieldsToRemove = config.technicalFields;
-            if (role && ['admin', 'seller'].indexOf(role.type) <= 0) {
-                fieldsToRemove = Object.assign({}, config.technicalFields, {
-                    'count_bought': 0,
-                    'count_sold': 0,
-                    'price_bought': 0
-                });
-            }
-            Products.findById(req.params.productId)
-                .where({
-                    'dwh_deleted': false
-                })
-                .select(fieldsToRemove)
-                // 	.populate({path: 'role_id', select: '-_id name'})
-                .exec(function (err, product) {
-                    if (err) {
-                        next({
-                            'msg': 'Error reading product information',
-                            'err': err
-                        });
-                    } else {
-                        if (product) {
-                            res.send(Object.assign({}, product._doc, {
-                                'is_available': product.is_available
-                            }));
-                        } else {
-                            console.warn('Product not found');
-                            respObj.success = false;
-                            respObj.response.msg = "Product not found";
-                            res.send(respObj);
+            if (role && ['admin', 'seller'].indexOf(role.type) > 0) {
+                Products.findById(req.params.productId)
+                    .where({
+                        'dwh_deleted': false
+                    })
+                    .populate('seller', 'first_name last_name')
+                    .populate({
+                        path: 'category',
+                        select: '_id name description parent_id',
+                        populate: {
+                            path: 'parent',
+                            select: '_id name description'
                         }
-                    }
-                });
+                    })
+                    .select(fieldsToRemove)
+                    .exec(function (err, product) {
+                        if (err) {
+                            next({
+                                'msg': 'Error reading product information',
+                                'err': err
+                            });
+                        } else {
+                            if (product) {
+                                res.send(product);
+                            } else {
+                                console.warn('Product not found');
+                                respObj.success = false;
+                                respObj.response.msg = "Product not found";
+                                res.send(respObj);
+                            }
+                        }
+                    });
+            } else {
+                respObj.success = false;
+                respObj.response.msg = 'You are not authorized to perform this action';
+                res.status(403).send(respObj);
+            }
         }
     });
 };

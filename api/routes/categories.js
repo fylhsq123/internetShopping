@@ -4,6 +4,8 @@ module.exports = function (app) {
 	var categories = require('../controllers/categories');
 
 	// countries Routes
+	app.route('/categories1')
+		.get(categories.list_all_categoies1);
 	app.route('/categories')
 		.get(categories.list_all_categoies);
 
