@@ -61,9 +61,6 @@ categoriesRoutes(app);
 // Products Routes
 productsRoutes(app, passport);
 
-// Sellers Routes
-//sellersRoutes(app, passport);
-
 // Error handlers
 function logErrors(err, req, res, next) {
 	console.error(err);
