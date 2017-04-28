@@ -186,6 +186,54 @@ Header:
 ### List products [/products]
 **Get list of all products [GET]**
 
+**Create new product [POST]**
+Header:
+```javascript
+    Authorization: {AuthorizationToken}
+```
+Body:
+  
+```javascript
+{
+     name: {
+        type: String,
+        required: true
+    },
+    description: {
+        type: String,
+        required: true
+    },
+    image: {
+        type: String(converted to DataURI)
+    },
+    subcategory_id: {
+        type: Schema.Types.ObjectId,
+        required: true
+    },
+    seller_id: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: 'Customers'
+    },
+    count_bought: {
+        type: Number,
+        default: 0
+    },
+    count_sold: {
+        type: Number,
+        default: 0
+    },
+    price_bought: {
+        type: Number,
+        default: 0
+    },
+    price_sold: {
+        type: Number,
+        default: 0
+    }
+}
+```
+
 ### List products [/products/bysubcategory/{subcategoryId}/{sortBy}/{sortOrder}]
 **Get list of products with specified subcategory [GET]**
 + Parameters
