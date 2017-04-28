@@ -5,7 +5,8 @@ module.exports = function (app, passport) {
         config = require('../config/conf.js');
 
     app.route('/products')
-        .get(products.list_all_products);
+        .get(products.list_all_products)
+        .post(passport.authenticate('jwt', config.jwtSession), products.create_new_product);
 
     app.route(['/products/bysubcategory/:subcategoryId/:sortBy/:sortOrder', '/products/bysubcategory/:subcategoryId'])
         .get(products.list_all_products);
@@ -15,10 +16,7 @@ module.exports = function (app, passport) {
         .get(products.list_all_products);
 
     app.route('/products/:productId')
-        .get(products.list_all_products);
-
-    app.route('/product')
-        .post(passport.authenticate('jwt', config.jwtSession), products.create_new_product);
+        .get(products.read_general_product_info);
 
     app.route('/product/:productId')
         .get(passport.authenticate('jwt', config.jwtSession), products.read_product_info)

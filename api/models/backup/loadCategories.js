@@ -23,20 +23,6 @@ var insertCategories = function (db, callback) {
 					"description": "Cell phones",
 					"parent_id": ObjectId("58fdb56d93c22716c88234c4")
 				}, {
-					"_id": ObjectId("58fdb56d93c22716c88234b1"),
-					"dwh_modified_date": new Date(),
-					"dwh_created_date": new Date(),
-					"name": "Smartphones",
-					"description": "Smartphones",
-					"parent_id": ObjectId("58fdb56d93c22716c88234bf")
-				}, {
-					"_id": ObjectId("58fdb56d93c22716c88234b2"),
-					"dwh_modified_date": new Date(),
-					"dwh_created_date": new Date(),
-					"name": "Accessories",
-					"description": "Accessories",
-					"parent_id": ObjectId("58fdb56d93c22716c88234bf")
-				}, {
 					"_id": ObjectId("58fdb56d93c22716c88234c0"),
 					"dwh_modified_date": new Date(),
 					"dwh_created_date": new Date(),
