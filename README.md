@@ -267,3 +267,13 @@ Body:
 }
 ```
 
+### Managing products [/product/{productId}]
+**Get detailed information about product which is useful for seller [GET]**
++ Parameters
+
+    + productId: 59009df29cf77d3a40479fda (required) - Unique identifier for a product
+
+Header:
+```javascript
+    Authorization: {AuthorizationToken}
+```
