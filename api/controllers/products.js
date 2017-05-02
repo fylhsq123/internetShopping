@@ -200,7 +200,7 @@ exports.read_product_info = function (req, res, next) {
                                 console.warn('Product not found');
                                 respObj.success = false;
                                 respObj.response.msg = "Product not found";
-                                res.send(respObj);
+                                res.status(404).send(respObj);
                             }
                         }
                     });
@@ -230,5 +230,51 @@ exports.update_product_info = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.delete_product_info = function (req, res, next) {
-
+    Roles.findById(req.user.role_id, function (err, role) {
+        if (err) {
+            next({
+                'msg': 'Error getting roles',
+                'err': err
+            });
+        } else {
+            if (role && ['admin', 'seller'].indexOf(role.type) > 0) {
+                var deleteConditions = {
+                    '_id': req.params.productId,
+                    'dwh_deleted': false
+                };
+                if (role.type === 'seller') {
+                    Object.assign(deleteConditions, {
+                        'seller_id': req.user._id
+                    });
+                }
+                Products.findOneAndUpdate(deleteConditions, {
+                    $set: {
+                        'dwh_deleted': true
+                    }
+                }, function (err, product) {
+                    if (err) {
+                        next({
+                            'msg': 'Error deleting product',
+                            'err': err
+                        });
+                    } else {
+                        if (product) {
+                            respObj.success = true;
+                            respObj.response.msg = "Product successfully deleted";
+                            res.send(respObj);
+                        } else {
+                            console.warn('Product not found');
+                            respObj.success = false;
+                            respObj.response.msg = "Product not found";
+                            res.status(404).send(respObj);
+                        }
+                    }
+                });
+            } else {
+                respObj.success = false;
+                respObj.response.msg = 'You are not authorized to perform this action';
+                res.status(403).send(respObj);
+            }
+        }
+    });
 };
