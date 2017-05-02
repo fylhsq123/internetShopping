@@ -7,8 +7,9 @@ var
 	morgan = require('morgan'),
 	mongoose = require('mongoose'),
 	passport = require('passport'),
-	//jwt = require('jwt-simple'),
 	cors = require('cors'),
+	// load global event emitter
+	events = require('./common/global-event-emitter'),
 	// get config file
 	config = require('./api/config/conf'),
 	// parameters and initialization
@@ -24,7 +25,10 @@ var
 	customersRoutes = require('./api/routes/customers'),
 	countriesCitiesRoutes = require('./api/routes/countriesCities'),
 	categoriesRoutes = require('./api/routes/categories'),
-	productsRoutes = require('./api/routes/products');
+	productsRoutes = require('./api/routes/products'),
+
+	http = require('http').Server(app),
+	io = require('socket.io')(http);
 
 mongoose.Promise = global.Promise;
 
@@ -61,6 +65,12 @@ categoriesRoutes(app);
 // Products Routes
 productsRoutes(app, passport);
 
+// Event listener on creating new product
+events.on(config.eventNameForNewProduct, function (msg) {
+	// Emit socket event
+	io.emit(config.eventNameForNewProduct, msg);
+});
+
 // Error handlers
 function logErrors(err, req, res, next) {
 	console.error(err);
@@ -89,6 +99,10 @@ app.use(function (req, res) {
 });
 
 // start server
-app.listen(port, function () {
-	console.log('RESTful API server started on: ' + port);
+// app.listen(port, function () {
+// 	console.log('RESTful API server started on: ' + port);
+// });
+
+http.listen(port, function () {
+	console.log('RESTful API server started on: ' + (port));
 });
