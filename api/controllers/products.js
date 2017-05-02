@@ -4,6 +4,7 @@ var mongoose = require('mongoose'),
     Products = mongoose.model('Products'),
     Roles = mongoose.model('Roles'),
     config = require('../config/conf.js'),
+    events = require('../../common/global-event-emitter'),
     respObj = {
         "success": false,
         "response": {
@@ -114,7 +115,37 @@ exports.create_new_product = function (req, res, next) {
                         delete response.dwh_deleted;
                         delete response.dwh_modified_date;
                         delete response.dwh_created_date;
-                        res.status(201).send(response);
+                        Products.findById(response._id)
+                            .populate('seller', 'first_name last_name')
+                            .populate({
+                                path: 'category',
+                                select: '_id name description parent_id',
+                                populate: {
+                                    path: 'parent',
+                                    select: '_id name description'
+                                }
+                            }).exec(function (err, product) {
+                                if (err) {
+                                    next({
+                                        'msg': 'Error reading product information',
+                                        'err': err
+                                    });
+                                } else {
+                                    if (product) {
+                                        events.emit(config.eventNameForNewProduct, {
+                                            'name': product.name,
+                                            'seller': product.seller,
+                                            'category': product.category
+                                        });
+                                        res.status(201).send(response);
+                                    } else {
+                                        console.warn('Product not found');
+                                        respObj.success = false;
+                                        respObj.response.msg = "Product not found";
+                                        res.status(404).send(respObj);
+                                    }
+                                }
+                            });
                     }
                 });
             } else {
