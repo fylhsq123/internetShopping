@@ -44,6 +44,20 @@ var insertCategories = function (db, callback) {
 					"description": "Laptops",
 					"parent_id": ObjectId("58fdb56d93c22716c88234c4")
 				}, {
+					"_id": ObjectId("58fdb56d93c22716c88234c6"),
+					"dwh_modified_date": new Date(),
+					"dwh_created_date": new Date(),
+					"name": "Batteries",
+					"description": "Batteries",
+					"parent_id": ObjectId("58fdb56d93c22716c88234c0")
+				}, {
+					"_id": ObjectId("58fdb56d93c22716c88234c7"),
+					"dwh_modified_date": new Date(),
+					"dwh_created_date": new Date(),
+					"name": "Displays",
+					"description": "Displays",
+					"parent_id": ObjectId("58fdb56d93c22716c88234c0")
+				}, {
 					"_id": ObjectId("58fdb56d93c22716c88234c1"),
 					"dwh_modified_date": new Date(),
 					"dwh_created_date": new Date(),
