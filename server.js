@@ -8,6 +8,7 @@ var
 	mongoose = require('mongoose'),
 	passport = require('passport'),
 	cors = require('cors'),
+	cookieParser = require('cookie-parser'),
 	// load global event emitter
 	events = require('./common/global-event-emitter'),
 	// get config file
@@ -26,6 +27,7 @@ var
 	countriesCitiesRoutes = require('./api/routes/countriesCities'),
 	categoriesRoutes = require('./api/routes/categories'),
 	productsRoutes = require('./api/routes/products'),
+	commonRoutes = require('./api/routes/common'),
 
 	http = require('http').Server(app),
 	io = require('socket.io')(http);
@@ -33,10 +35,12 @@ var
 mongoose.Promise = global.Promise;
 
 // get request parameters
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
 	extended: true
 }));
-app.use(bodyParser.json());
+
+app.use(cookieParser());
 
 // log to console
 app.use(morgan('combined'));
@@ -65,10 +69,23 @@ categoriesRoutes(app);
 // Products Routes
 productsRoutes(app, passport);
 
+// Common Routes
+commonRoutes(app);
+
 // Event listener on creating new product
-events.on(config.eventNameForNewProduct, function (msg) {
-	// Emit socket event
-	io.emit(config.eventNameForNewProduct, msg);
+io.on('connection', function (socket) {
+	socket.join('new_products');
+});
+events.on(config.eventNameForNewProduct, function (data) {
+	if (data.socket_id) {
+		io.sockets.connected[data.socket_id].broadcast.to('new_products').emit(config.eventNameForNewProduct, data);
+	} else {
+		io.to('new_products').emit(config.eventNameForNewProduct, data);
+	}
+	// io.in('new_products').emit(config.eventNameForNewProduct, data);
+});
+app.route('/').get(function (req, res) {
+	res.sendFile(__dirname + '/index.html');
 });
 
 // Error handlers

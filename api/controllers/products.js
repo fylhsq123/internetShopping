@@ -1,10 +1,14 @@
 'use strict';
 
 var mongoose = require('mongoose'),
+    formidable = require('formidable'),
+    cryptiles = require('cryptiles'),
     Products = mongoose.model('Products'),
     Roles = mongoose.model('Roles'),
     config = require('../config/conf.js'),
     events = require('../../common/global-event-emitter'),
+    path = require('path'),
+    fs = require('fs'),
     respObj = {
         "success": false,
         "response": {
@@ -95,57 +99,78 @@ exports.create_new_product = function (req, res, next) {
             });
         } else {
             if (role && ['admin', 'seller'].indexOf(role.type) > 0) {
-                var new_product = new Products(req.body);
-                new_product.save(function (err, product) {
-                    if (err) {
-                        respObj.success = false;
-                        if (err.name && err.name === "ValidationError") {
-                            respObj.response.msg = err.errors;
-                            res.status(400).send(respObj);
-                        } else {
-                            next({
-                                'msg': 'Error registering new product',
-                                'err': err
-                            });
-                        }
-                    } else {
-                        var response = Object.assign({}, product.toObject(), {
-                            'success': true
-                        });
-                        delete response.dwh_deleted;
-                        delete response.dwh_modified_date;
-                        delete response.dwh_created_date;
-                        Products.findById(response._id)
-                            .populate('seller', 'first_name last_name')
-                            .populate({
-                                path: 'category',
-                                select: '_id name description parent_id',
-                                populate: {
-                                    path: 'parent',
-                                    select: '_id name description'
-                                }
-                            }).exec(function (err, product) {
-                                if (err) {
-                                    next({
-                                        'msg': 'Error reading product information',
-                                        'err': err
-                                    });
-                                } else {
-                                    if (product) {
-                                        events.emit(config.eventNameForNewProduct, {
-                                            'name': product.name,
-                                            'seller': product.seller,
-                                            'category': product.category
-                                        });
-                                        res.status(201).send(response);
-                                    } else {
-                                        console.warn('Product not found');
+                var form = new formidable.IncomingForm();
+                form.parse(req, function (err, fields, files) {
+                    if (files.image) {
+                        var ext = path.extname(files.image.name);
+                        var newFileName = cryptiles.randomString(8) + new Date().getTime();
+                        var targetPath = path.resolve('./uploads/' + newFileName + ext);
+                        fs.rename(files.image.path, targetPath, function (err) {
+                            if (err) {
+                                next({
+                                    'msg': 'Error uploading file',
+                                    'err': err
+                                });
+                            } else {
+                                Object.assign(fields, {
+                                    image: newFileName
+                                });
+                                var new_product = new Products(fields);
+                                new_product.save(function (err, product) {
+                                    if (err) {
                                         respObj.success = false;
-                                        respObj.response.msg = "Product not found";
-                                        res.status(404).send(respObj);
+                                        if (err.name && err.name === "ValidationError") {
+                                            respObj.response.msg = err.errors;
+                                            res.status(400).send(respObj);
+                                        } else {
+                                            next({
+                                                'msg': 'Error registering new product',
+                                                'err': err
+                                            });
+                                        }
+                                    } else {
+                                        var response = Object.assign({}, product.toObject(), {
+                                            'success': true
+                                        });
+                                        delete response.dwh_deleted;
+                                        delete response.dwh_modified_date;
+                                        delete response.dwh_created_date;
+                                        Products.findById(response._id)
+                                            .populate('seller', 'first_name last_name')
+                                            .populate({
+                                                path: 'category',
+                                                select: '_id name description parent_id',
+                                                populate: {
+                                                    path: 'parent',
+                                                    select: '_id name description'
+                                                }
+                                            }).exec(function (err, product) {
+                                                if (err) {
+                                                    next({
+                                                        'msg': 'Error reading product information',
+                                                        'err': err
+                                                    });
+                                                } else {
+                                                    if (product) {
+                                                        events.emit(config.eventNameForNewProduct, {
+                                                            'name': product.name,
+                                                            'seller': product.seller,
+                                                            'category': product.category,
+                                                            'socket_id': req.cookies.io
+                                                        });
+                                                        res.status(201).send(response);
+                                                    } else {
+                                                        console.warn('Product not found');
+                                                        respObj.success = false;
+                                                        respObj.response.msg = "Product not found";
+                                                        res.status(404).send(respObj);
+                                                    }
+                                                }
+                                            });
                                     }
-                                }
-                            });
+                                });
+                            }
+                        });
                     }
                 });
             } else {
