@@ -31,17 +31,50 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
-        $(function() {
-            var socket = io();
-            socket.on('news', function(msg) {
-                $('#messages').append($('<li>').text(msg));
+        $(function () {
+            var socket = io('http://192.168.2.65:3000');
+            socket.on('news', function (obj) {
+                $('#messages').append($('<li>').text(obj.name));
             });
+
+            $("form#data").submit(function () {
+
+                var formData = new FormData($(this)[0]);
+
+                $.ajax({
+                    url: 'http://192.168.2.65:3000/product',
+                    type: 'POST',
+                    data: formData,
+                    headers: {
+                        'Authorization': 'JWT eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJfaWQiOiI1OGY3NTE3MDQzZmRlMTIwN2MxNTYyYTIiLCJlbWFpbCI6InRlc3QxMjNAdGVzdC5jb20iLCJwYXNzd29yZCI6IiQyYSQxMCQvNXdJYzRXUWJZZ3YwUHAySEN6YmhPMHpiR2J1SHVsaG0zUUtXQjI0UEMvREdkQmd3QVpFaSIsInppcF9jb2RlIjoiMTIzIiwiY2l0eSI6Ikx2aXYiLCJhZGRyZXNzIjoiWmVsZW5hIHN0LiwgMjUiLCJwaG9uZV9udW1iZXIiOiIwNjMzOTQ1NDc1IiwibGFzdF9uYW1lIjoiVGVzdExhc3QiLCJmaXJzdF9uYW1lIjoiVGVzdEZpcnN0Iiwicm9sZV9pZCI6IjU4ZmRmMzc5NzQ2YzcwZThhMTc1OWE1YiIsImNvdW50cnkiOnsiX2lkIjoiNThmMGQ3YzY3MTZlMGY2NzQ0MWIwYjA1IiwiY291bnRyeSI6IlVrcmFpbmUifX0.SStnF7OiO2sTayzZIR9GGb0sUWQ6gue9DES9Th3886s'
+                    },
+                    async: false,
+                    success: function (data) {
+                        alert(data)
+                    },
+                    cache: false,
+                    contentType: false,
+                    processData: false
+                });
+
+                return false;
+            });
+
         });
     </script>
 </head>
 
 <body>
     <ul id="messages"></ul>
+    <form id="data" method="post" action="http://192.168.2.65:3000/product" enctype="multipart/form-data">
+        <input type="text" placeholder="Name" name="name" value="Test product 21">
+        <input type="text" placeholder="Description" name="description" value="Test product 21 description">
+        <input type="file" name="image">
+        <input type="text" placeholder="Subcategory ID" name="subcategory_id" value="58fdb56d93c22716c88234c2">
+        <input type="text" placeholder="Seller ID" name="seller_id" value="58f7517043fde1207c1562a2">
+        <button id="addProduct">Add Product</button>
+    </form>
+    <img src="http://192.168.2.65:3000/sources/QL0VB94E1493815085189.png">
 </body>
 
 </html>
