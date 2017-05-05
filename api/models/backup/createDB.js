@@ -1,3 +1,4 @@
+'use strict';
 var MongoClient = require('mongodb').MongoClient;
 var assert = require('assert');
 
@@ -408,7 +409,7 @@ MongoClient.connect(url, function(err, db) {
         insertShops(db, function() {
             insertProducts(db, function() {
                 db.close();
-            })
+            });
         });
     });
 });
