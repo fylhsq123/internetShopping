@@ -1,5 +1,4 @@
 'use strict';
-
 var
 	// load modules
 	express = require('express'),
@@ -12,9 +11,9 @@ var
 	// load global event emitter
 	events = require('./common/global-event-emitter'),
 	// get config file
-	config = require('./api/config/conf'),
-	// parameters and initialization
-	port = process.env.PORT || 3000,
+	//config = require('./api/config/conf'),
+	config = require('config'),
+	// initialization
 	app = express(),
 	// get models
 	customersModel = require('./api/models/customers'),
@@ -40,6 +39,7 @@ app.use(bodyParser.urlencoded({
 	extended: true
 }));
 
+// set cookie parser
 app.use(cookieParser());
 
 // log to console
@@ -55,7 +55,7 @@ app.use(cors());
 mongoose.connect(config.database);
 
 // pass passport for configuration
-require('./api/config/passport')(passport, customersModel);
+require('./config/passport')(passport, customersModel);
 
 // Customer Routes
 customersRoutes(app, passport);
@@ -82,7 +82,6 @@ events.on(config.eventNameForNewProduct, function (data) {
 	} else {
 		io.to('new_products').emit(config.eventNameForNewProduct, data);
 	}
-	// io.in('new_products').emit(config.eventNameForNewProduct, data);
 });
 app.route('/').get(function (req, res) {
 	res.sendFile(__dirname + '/index.html');
@@ -90,10 +89,9 @@ app.route('/').get(function (req, res) {
 
 // Error handlers
 function logErrors(err, req, res, next) {
-	console.error(err);
+	console.error("[ERROR]: ", err);
 	next(err);
 }
-
 function clientErrorHandler(err, req, res, next) {
 	res.status(500)
 		.send({
@@ -102,7 +100,6 @@ function clientErrorHandler(err, req, res, next) {
 				"msg": err.msg
 			}
 		});
-	next();
 }
 app.use(logErrors);
 app.use(clientErrorHandler);
@@ -116,10 +113,6 @@ app.use(function (req, res) {
 });
 
 // start server
-// app.listen(port, function () {
-// 	console.log('RESTful API server started on: ' + port);
-// });
-
-http.listen(port, function () {
-	console.log('RESTful API server started on: ' + (port));
+http.listen(config.server.port, config.server.address, function () {
+	console.log('RESTful API server started on: ' + (config.server.address + ':' + config.server.port));
 });
