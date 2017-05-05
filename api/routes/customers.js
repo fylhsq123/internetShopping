@@ -2,7 +2,7 @@
 
 module.exports = function (app, passport) {
 	var customers = require('../controllers/customers'),
-		config = require('../config/conf');
+		config = require('config');
 
 	/**
 	 * Create new customer or list all customers

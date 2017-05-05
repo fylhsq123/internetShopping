@@ -4,7 +4,7 @@ var mongoose = require('mongoose'),
 	CustomersDB = mongoose.model('Customers'),
 	Roles = mongoose.model('Roles'),
 	jwt = require('jwt-simple'),
-	config = require('../config/conf'),
+	config = require('config'),
 	respObj = {
 		"success": false,
 		"response": {

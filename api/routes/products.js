@@ -2,7 +2,7 @@
 
 module.exports = function (app, passport) {
     var products = require('../controllers/products.js'),
-        config = require('../config/conf.js');
+        config = require('config');
 
     app.route('/products')
         .get(products.list_all_products);

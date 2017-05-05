@@ -3,7 +3,7 @@ var MongoClient = require('mongodb')
 	.MongoClient,
 	ObjectId = require('mongodb')
 	.ObjectID,
-	config = require('../../config/conf');
+	config = require('config');
 
 var insertCategories = function (db, callback) {
 	var categories = db.collection('categories');
