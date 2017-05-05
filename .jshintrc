@@ -9,5 +9,6 @@
     "devel": true,
     "expr": true,
     "node": true,
-    "globals": {}
+    "globals": {},
+    "esversion": 6
 }
