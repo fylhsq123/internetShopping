@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js"
+    "start": "SET NODE_ENV=dev&&nodemon server.js"
   },
   "author": "Andrii Heptinh",
   "license": "ISC",
@@ -13,16 +13,22 @@
     "bcrypt": "1.0.2",
     "bluebird": "3.5.0",
     "body-parser": "1.17.1",
+    "config": "1.26.1",
     "cookie-parser": "1.4.3",
     "cors": "2.8.3",
     "express": "4.15.2",
     "formidable": "1.1.1",
     "jwt-simple": "0.5.1",
-    "mongoose": "4.9.4",
+    "mongoose": "4.9.7",
     "morgan": "1.8.1",
     "nodemon": "1.11.0",
     "passport": "0.3.2",
     "passport-jwt": "2.2.1",
     "socket.io": "1.7.3"
+  },
+  "devDependencies": {
+    "chai": "3.5.0",
+    "chai-http": "3.0.0",
+    "mocha": "3.3.0"
   }
 }
