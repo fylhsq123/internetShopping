@@ -94,7 +94,7 @@ exports.create_new_product = function (req, res, next) {
                 'err': err
             });
         }
-        if (role && ['admin', 'seller'].indexOf(role.type) > 0) {
+        if (role && ['admin', 'seller'].indexOf(role.type) >= 0) {
             var form = new formidable.IncomingForm();
             form.parse(req, function (err, fields, files) {
                 if (err) {
@@ -159,6 +159,7 @@ exports.create_new_product = function (req, res, next) {
                             }
                             if (product) {
                                 events.emit(config.eventNameForNewProduct, {
+                                    '_id': product._id,
                                     'name': product.name,
                                     'seller': product.seller,
                                     'category': product.category,
@@ -197,7 +198,7 @@ exports.read_product_info = function (req, res, next) {
             });
         }
         var fieldsToRemove = config.technicalFields;
-        if (role && ['admin', 'seller'].indexOf(role.type) > 0) {
+        if (role && ['admin', 'seller'].indexOf(role.type) >= 0) {
             Products.findById(req.params.productId)
                 .where({
                     'dwh_deleted': false
@@ -250,7 +251,7 @@ exports.update_product_info = function (req, res, next) {
                 'err': err
             });
         }
-        if (role && ['admin', 'seller'].indexOf(role.type) > 0) {
+        if (role && ['admin', 'seller'].indexOf(role.type) >= 0) {
             var form = new formidable.IncomingForm();
             form.parse(req, function (err, fields, files) {
                 if (err) {
@@ -330,7 +331,7 @@ exports.delete_product_info = function (req, res, next) {
                 'err': err
             });
         }
-        if (role && ['admin', 'seller'].indexOf(role.type) > 0) {
+        if (role && ['admin', 'seller'].indexOf(role.type) >= 0) {
             var deleteConditions = {
                 '_id': req.params.productId,
                 'dwh_deleted': false
@@ -368,4 +369,40 @@ exports.delete_product_info = function (req, res, next) {
             res.status(403).send(respObj);
         }
     });
+};
+
+
+exports.broadcast = function (req, res, next) {
+    Products.findById("5912bbf3bf76940f502fddd0")
+        .populate('seller', 'first_name last_name')
+        .populate({
+            path: 'category',
+            select: '_id name description parent_id',
+            populate: {
+                path: 'parent',
+                select: '_id name description'
+            }
+        }).exec(function (err, product) {
+            if (err) {
+                return next({
+                    'msg': 'Error reading product information',
+                    'err': err
+                });
+            }
+            if (product) {
+                events.emit(config.eventNameForNewProduct, {
+                    '_id': product._id,
+                    'name': product.name,
+                    'seller': product.seller,
+                    'category': product.category,
+                    'socket_id': req.cookies.io
+                });
+                res.send(product)
+            } else {
+                console.warn('Product not found');
+                respObj.success = false;
+                respObj.response.msg = "Product not found";
+                res.status(404).send(respObj);
+            }
+        });
 };
