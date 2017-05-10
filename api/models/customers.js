@@ -19,7 +19,6 @@ var CustomerSchema = new Schema({
 	},
 	personal_key: {
 		type: Number,
-		required: [true, "Please path you personal number"],
 		default: new Date()
 			.getTime()
 	},
@@ -37,11 +36,13 @@ var CustomerSchema = new Schema({
 		type: String,
 		validate: {
 			validator: function (v) {
-				return v.length ?
-					/\S+@\S+/.test(v) :
-					true;
+				return /\S+@\S+/.test(v);
 			},
 			message: "Invalid email"
+		},
+		required: [true, 'Email is required'],
+		index: {
+			unique: true
 		}
 	},
 	address: {
