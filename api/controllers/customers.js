@@ -101,8 +101,14 @@ exports.read_customer_info = function (req, res, next) {
 		.select(Object.assign({}, config.technicalFields, {
 			'password': 0
 		}))
-		.populate({path: 'country', select: 'country'})
-		.populate({path: 'role_id', select: '-_id name'})
+		.populate({
+			path: 'country',
+			select: 'country'
+		})
+		.populate({
+			path: 'role_id',
+			select: '-_id name'
+		})
 		.exec(function (err, customer) {
 			if (err) {
 				next({
@@ -206,8 +212,14 @@ exports.authenticate_customer = function (req, res, next) {
 			'dwh_deleted': false
 		})
 		.select(config.technicalFields)
-		.populate({path: 'country', select: 'country'})
-		.populate({path: 'role_id', select: '-_id name type'})
+		.populate({
+			path: 'country',
+			select: 'country'
+		})
+		.populate({
+			path: 'role_id',
+			select: '-_id name type'
+		})
 		.exec(function (err, customer) {
 			if (err) {
 				next({
