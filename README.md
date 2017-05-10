@@ -279,6 +279,10 @@ Header:
 ```
 
 **Update product info [PUT]**
++ Parameters
+
+    + productId: 59009df29cf77d3a40479fda (required) - Unique identifier for a product
+
 Header:
 ```javascript
     Authorization: {AuthorizationToken}
