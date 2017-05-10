@@ -329,7 +329,7 @@ Body:
 }
 ```
 
-**Delete product [GET]**
+**Delete product [DELETE]**
 + Parameters
 
     + productId: 59009df29cf77d3a40479fda (required) - Unique identifier for a product
