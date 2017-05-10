@@ -89,9 +89,10 @@ app.route('/').get(function (req, res) {
 
 // Error handlers
 function logErrors(err, req, res, next) {
-	console.error("[ERROR]: ", err);
+	console.error("[ERROR]: ", err.err.message ? err.err.message : err.err);
 	next(err);
 }
+
 function clientErrorHandler(err, req, res, next) {
 	res.status(500)
 		.send({
@@ -116,3 +117,6 @@ app.use(function (req, res) {
 http.listen(config.server.port, config.server.address, function () {
 	console.log('RESTful API server started on: ' + (config.server.address + ':' + config.server.port));
 });
+
+// for Mocha tests
+module.exports = app;
