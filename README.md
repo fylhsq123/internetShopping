@@ -237,7 +237,7 @@ Body:
         required: true
     },
     image: {
-        type: String(converted to DataURI)
+        type: file/image
     },
     subcategory_id: {
         type: Schema.Types.ObjectId,
@@ -269,6 +269,63 @@ Body:
 
 ### Managing products [/product/{productId}]
 **Get detailed information about product which is useful for seller [GET]**
++ Parameters
+
+    + productId: 59009df29cf77d3a40479fda (required) - Unique identifier for a product
+
+Header:
+```javascript
+    Authorization: {AuthorizationToken}
+```
+
+**Update product info [PUT]**
+Header:
+```javascript
+    Authorization: {AuthorizationToken}
+```
+Body:
+```javascript
+{
+     name: {
+        type: String,
+        required: true
+    },
+    description: {
+        type: String,
+        required: true
+    },
+    image: {
+        type: file/image
+    },
+    subcategory_id: {
+        type: Schema.Types.ObjectId,
+        required: true
+    },
+    seller_id: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        ref: 'Customers'
+    },
+    count_bought: {
+        type: Number,
+        default: 0
+    },
+    count_sold: {
+        type: Number,
+        default: 0
+    },
+    price_bought: {
+        type: Number,
+        default: 0
+    },
+    price_sold: {
+        type: Number,
+        default: 0
+    }
+}
+```
+
+**Delete product [GET]**
 + Parameters
 
     + productId: 59009df29cf77d3a40479fda (required) - Unique identifier for a product
