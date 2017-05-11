@@ -24,7 +24,7 @@ describe('CountriesCities', () => {
             chai.request(server).get('/countries').end((err, res) => {
                 if (err) return done(err);
                 res.should.have.status(200);
-                res.body.should.be.a('array');
+                res.body.should.be.an('array');
                 res.body.should.have.length(config.countries.length);
                 done();
             });
@@ -35,10 +35,10 @@ describe('CountriesCities', () => {
             chai.request(server).get('/cities/' + countryId).end((err, res) => {
                 if (err) return done(err);
                 res.should.have.status(200);
-                res.body.should.be.a('object');
+                res.body.should.be.an('object');
                 res.body.should.not.be.empty;
                 res.body.should.have.property('cities');
-                res.body.cities.should.be.a('array');
+                res.body.cities.should.be.an('array');
                 res.body.cities.should.have.length(config.countries[0].cities.length);
                 done();
             });
