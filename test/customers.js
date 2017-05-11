@@ -3,7 +3,8 @@ process.env.NODE_ENV = 'test';
 
 var mongoose = require('mongoose'),
     Customers = require('../api/models/customers'),
-    CountriesCities = require('../api/models/countriesCities.js'),
+    CountriesCities = require('../api/models/countriesCities'),
+    Roles = require('../api/models/roles'),
 
     chai = require('chai'),
     should = chai.should(),
@@ -34,16 +35,41 @@ var mongoose = require('mongoose'),
 chai.use(chaiHttp).use(chaiAsPromised);
 
 describe('Customers', () => {
-    beforeEach(() => {
-        return Customers.remove({})
-            .then(() => {
-                return Customers.insertMany(config.customers);
-            })
-            .then(() => {
-                return CountriesCities.remove({}).then(() => {
-                    return CountriesCities.insertMany(config.countries);
-                });
+    var authorizationAdmin, authorizationSeller,
+        customersArr = [config.customers.admin, config.customers.seller, config.customers.buyer];
+    before('Load data into related tables', () => {
+        return CountriesCities.remove({}).then(() => {
+            return CountriesCities.insertMany(config.countries);
+        }).then(() => {
+            return Roles.remove({}).then(() => {
+                return Roles.insertMany(config.roles);
             });
+        });
+    });
+    beforeEach('Clean up Customers collection before each test', () => {
+        return Customers.remove({}).then(() => {
+            return Customers.insertMany(customersArr);
+        });
+    });
+    beforeEach('authenticate admin', (done) => {
+        chai.request(server).post('/authenticate').send({
+            email: config.customers.admin.email,
+            password: config.customers.admin.password_unhashed
+        }).end((err, res) => {
+            if (err) return done(err);
+            authorizationAdmin = res.body.token;
+            done();
+        });
+    });
+    beforeEach('authenticate seller', (done) => {
+        chai.request(server).post('/authenticate').send({
+            email: config.customers.seller.email,
+            password: config.customers.seller.password_unhashed
+        }).end((err, res) => {
+            if (err) return done(err);
+            authorizationSeller = res.body.token;
+            done();
+        });
     });
 
     describe('Creating new customer', () => {
@@ -52,7 +78,6 @@ describe('Customers', () => {
                 if (err) return done(err);
                 res.should.have.status(201);
                 res.body.email.should.equal(testCorrectCustomer.email);
-                res.body.first_name.should.equal(testCorrectCustomer.first_name);
                 done();
             });
         });
@@ -72,17 +97,12 @@ describe('Customers', () => {
             });
         });
     });
+
     describe('Customer authorization', () => {
-        beforeEach('register customer', (done) => {
-            chai.request(server).post('/customers').send(testCorrectCustomer).end((err) => {
-                if (err) return done(err);
-                done();
-            });
-        });
         it('should be possible to login', (done) => {
             chai.request(server).post('/authenticate').send({
-                email: testCorrectCustomer.email,
-                password: testCorrectCustomer.password
+                email: config.customers.admin.email,
+                password: config.customers.admin.password_unhashed
             }).end((err, res) => {
                 res.should.have.status(200);
                 done();
@@ -90,8 +110,8 @@ describe('Customers', () => {
         });
         it('should not login if email is not registered', (done) => {
             chai.request(server).post('/authenticate').send({
-                email: 'wrong' + testCorrectCustomer.email,
-                password: testCorrectCustomer.password
+                email: 'wrongEmail',
+                password: config.customers.admin.password_unhashed
             }).end((err, res) => {
                 res.should.have.status(403);
                 done();
@@ -99,12 +119,89 @@ describe('Customers', () => {
         });
         it('should not login if password is incorrect', (done) => {
             chai.request(server).post('/authenticate').send({
-                email: testCorrectCustomer.email,
-                password: 'wrong' + testCorrectCustomer.password
+                email: config.customers.admin.email,
+                password: 'wrongPassword'
             }).end((err, res) => {
                 res.should.have.status(403);
                 done();
             });
+        });
+    });
+
+    describe('Listing all customers', () => {
+        it('should list all customers for administrator', (done) => {
+            chai.request(server).get('/customers').set("Authorization", authorizationAdmin).end((err, res) => {
+                if (err) return done(err);
+                res.should.have.status(200);
+                res.body.should.have.length(customersArr.length);
+                done();
+            });
+        });
+        it('should not list customers for non-admin user', (done) => {
+            chai.request(server).get('/customers').set("Authorization", authorizationSeller).end((err, res) => {
+                res.should.have.status(403);
+                done();
+            });
+        });
+
+        it('should not list customer for unauthorized user', (done) => {
+            chai.request(server).get('/customers').end((err, res) => {
+                res.should.have.status(401);
+                done();
+            });
+        });
+    });
+
+    describe('Read information about customers', () => {
+        it('should be possible that customer could read information about himself', (done) => {
+            chai.request(server).get('/customer').set("Authorization", authorizationAdmin).end((err, res) => {
+                if (err) return done(err);
+                res.should.have.status(200);
+                res.body.email.should.be.equal(config.customers.admin.email);
+                done();
+            });
+        });
+        it('should not be possible to read information about customer by some other seller or buyer', (done) => {
+            chai.request(server).get('/customer/' + config.customers.admin._id).set("Authorization", authorizationSeller).end((err, res) => {
+                if (err) return done(err);
+                res.should.have.status(200);
+                res.body.email.should.not.be.equal(config.customers.admin.email);
+                done();
+            });
+        });
+        it('should be possible to read information about any customer by administrator', (done) => {
+            chai.request(server).get('/customer/' + config.customers.seller._id).set("Authorization", authorizationAdmin).end((err, res) => {
+                if (err) return done(err);
+                res.should.have.status(200);
+                res.body.email.should.be.equal(config.customers.seller.email);
+                done();
+            });
+        });
+        it('should not be possible to read information about any customer by unauthorized user', (done)=>{
+            chai.request(server).get('/customer/' + config.customers.seller._id).end((err, res)=>{
+                res.should.have.status(401);
+                done();
+            });
+        });
+        it('should not be possible to read information about not existing customer by administrator', (done)=>{
+            chai.request(server).get('/customer/58f5d9463194692fc8fe3c63').set("Authorization", authorizationAdmin).end((err, res)=>{
+                res.should.have.status(400);
+                done();
+            });
+        });
+        it('should throw error if customer ID is not valid', (done)=>{
+            chai.request(server).get('/customer/SomeWrongID').set("Authorization", authorizationAdmin).end((err, res)=>{
+                res.should.have.status(500);
+                done();
+            });
+        });
+    });
+
+    after('Delete all data', () => {
+        return CountriesCities.remove({}).then(() => {
+            return Roles.remove({});
+        }).then(() => {
+            return Customers.remove({});
         });
     });
 });
