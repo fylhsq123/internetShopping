@@ -33,6 +33,9 @@ var
 
 mongoose.Promise = global.Promise;
 
+// Use CORS
+app.use(cors());
+
 // get request parameters
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
@@ -42,14 +45,13 @@ app.use(bodyParser.urlencoded({
 // set cookie parser
 app.use(cookieParser());
 
-// log to console
-app.use(morgan('combined'));
+if (config.util.getEnv('NODE_ENV') !== 'test') {
+	// log to console
+	app.use(morgan('combined'));
+}
 
 // Use the passport package in our application
 app.use(passport.initialize());
-
-// Use CORS
-app.use(cors());
 
 // connect to database
 mongoose.connect(config.database);
@@ -89,7 +91,7 @@ app.route('/').get(function (req, res) {
 
 // Error handlers
 function logErrors(err, req, res, next) {
-	console.error("[ERROR]: ", err.err.message ? err.err.message : err.err);
+	console.error('\x1b[31m\x1b[1m%s\x1b[0m', "[ERROR]: ", err.err.message ? err.err.message : err.err);
 	next(err);
 }
 
