@@ -27,18 +27,28 @@ exports.list_all_customers = function (req, res, next) {
 			});
 		} else {
 			if (role && role.type === 'admin') {
-				CustomersDB.find({}, Object.assign({}, config.technicalFields, {
-					'password': 0
-				}), function (err, customers) {
-					if (err) {
-						next({
-							'msg': 'Error listing customers',
-							'err': err
-						});
-					} else {
-						res.send(customers);
-					}
-				});
+				CustomersDB.find({})
+					.select({
+						'password': 0
+					})
+					.populate({
+						path: 'country',
+						select: 'country'
+					})
+					.populate({
+						path: 'role_id',
+						select: '-_id name type'
+					})
+					.exec(function (err, customers) {
+						if (err) {
+							next({
+								'msg': 'Error listing customers',
+								'err': err
+							});
+						} else {
+							res.send(customers);
+						}
+					});
 			} else {
 				respObj.success = false;
 				respObj.response.msg = 'You are not authorized to perform this action';
@@ -94,22 +104,28 @@ exports.create_customer = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.read_customer_info = function (req, res, next) {
-	CustomersDB.findById(req.user._id)
-		.where({
+	Roles.findById(req.user.role_id, function (err, role) {
+		var userId = req.user._id;
+		if (err) {
+			return next({
+				'msg': 'Error getting roles',
+				'err': err
+			});
+		}
+		if (role && role.type === 'admin') {
+			userId = req.params.customerId || userId;
+		}
+		CustomersDB.findById(userId).where({
 			'dwh_deleted': false
-		})
-		.select(Object.assign({}, config.technicalFields, {
+		}).select(Object.assign({}, config.technicalFields, {
 			'password': 0
-		}))
-		.populate({
+		})).populate({
 			path: 'country',
 			select: 'country'
-		})
-		.populate({
+		}).populate({
 			path: 'role_id',
-			select: '-_id name'
-		})
-		.exec(function (err, customer) {
+			select: '-_id name type'
+		}).exec(function (err, customer) {
 			if (err) {
 				next({
 					'msg': 'Error reading customer information',
@@ -119,13 +135,13 @@ exports.read_customer_info = function (req, res, next) {
 				if (customer) {
 					res.send(customer);
 				} else {
-					console.warn('Customer not found');
 					respObj.success = false;
 					respObj.response.msg = "Customer not found";
 					res.status(400).send(respObj);
 				}
 			}
 		});
+	});
 };
 
 /**
@@ -143,7 +159,8 @@ exports.update_customer = function (req, res, next) {
 	}, {
 		fields: Object.assign({}, config.technicalFields, {
 			'password': 0
-		})
+		}),
+		runValidators: true
 	}, function (err, customer) {
 		if (err) {
 			next({
@@ -156,7 +173,6 @@ exports.update_customer = function (req, res, next) {
 				respObj.response.msg = "Information about customer was successfully updated";
 				res.send(respObj);
 			} else {
-				console.warn('Customer not found');
 				respObj.success = false;
 				respObj.response.msg = "Customer not found";
 				res.status(400).send(respObj);
@@ -191,7 +207,6 @@ exports.delete_customer = function (req, res, next) {
 				respObj.response.msg = "Customer successfully deleted";
 				res.send(respObj);
 			} else {
-				console.warn('Customer not found');
 				respObj.success = false;
 				respObj.response.msg = "Customer not found";
 				res.status(400).send(respObj);
@@ -279,12 +294,12 @@ exports.logout_customer = function (req, res, next) {
 			if (customer) {
 				respObj.success = true;
 				respObj.response.msg = "Customer successfully logged out";
+				res.send(respObj);
 			} else {
-				console.warn('Customer not found');
 				respObj.success = false;
 				respObj.response.msg = "Customer not found";
+				res.status(400).send(respObj);
 			}
-			res.status(400).send(respObj);
 		}
 	});
 };
