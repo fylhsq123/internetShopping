@@ -137,7 +137,7 @@ exports.read_customer_info = function (req, res, next) {
 				} else {
 					respObj.success = false;
 					respObj.response.msg = "Customer not found";
-					res.status(400).send(respObj);
+					res.status(404).send(respObj);
 				}
 			}
 		});
@@ -151,33 +151,55 @@ exports.read_customer_info = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.update_customer = function (req, res, next) {
-	CustomersDB.findOneAndUpdate({
-		'_id': req.user._id,
-		'dwh_deleted': false
-	}, {
-		$set: req.body
-	}, {
-		fields: Object.assign({}, config.technicalFields, {
-			'password': 0
-		}),
-		runValidators: true
-	}, function (err, customer) {
+	Roles.findById(req.user.role_id, function (err, role) {
 		if (err) {
-			next({
-				'msg': 'Error updating information about customer',
+			return next({
+				'msg': 'Error getting roles',
 				'err': err
 			});
-		} else {
-			if (customer) {
-				respObj.success = true;
-				respObj.response.msg = "Information about customer was successfully updated";
-				res.send(respObj);
+		}
+		var userId = req.user._id,
+			selectFields = Object.assign({}, config.technicalFields, {
+				'password': 0,
+				'role_id': 0
+			});
+
+		if (req.params.customerId && req.params.customerId !== req.user._id) {
+			if (role && role.type === 'admin') {
+				userId = req.params.customerId;
+				delete selectFields.role_id;
 			} else {
 				respObj.success = false;
-				respObj.response.msg = "Customer not found";
-				res.status(400).send(respObj);
+				respObj.response.msg = 'You are not authorized to perform this action';
+				return res.status(403).send(respObj);
 			}
 		}
+		CustomersDB.findOneAndUpdate({
+			'_id': userId,
+			'dwh_deleted': false
+		}, {
+			$set: req.body
+		}, {
+			fields: selectFields,
+			runValidators: true
+		}, function (err, customer) {
+			if (err) {
+				next({
+					'msg': 'Error updating information about customer',
+					'err': err
+				});
+			} else {
+				if (customer) {
+					respObj.success = true;
+					respObj.response.msg = "Information about customer was successfully updated";
+					res.send(respObj);
+				} else {
+					respObj.success = false;
+					respObj.response.msg = "Customer not found";
+					res.status(404).send(respObj);
+				}
+			}
+		});
 	});
 };
 
@@ -188,30 +210,49 @@ exports.update_customer = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.delete_customer = function (req, res, next) {
-	CustomersDB.findOneAndUpdate({
-		'_id': req.user._id,
-		'dwh_deleted': false
-	}, {
-		$set: {
-			'dwh_deleted': true
-		}
-	}, function (err, customer) {
+	Roles.findById(req.user.role_id, function (err, role) {
 		if (err) {
-			next({
-				'msg': 'Error deleting customer',
+			return next({
+				'msg': 'Error getting roles',
 				'err': err
 			});
-		} else {
-			if (customer) {
-				respObj.success = true;
-				respObj.response.msg = "Customer successfully deleted";
-				res.send(respObj);
+		}
+		var userId = req.user._id;
+
+		if (req.params.customerId && req.params.customerId !== req.user._id) {
+			if (role && role.type === 'admin') {
+				userId = req.params.customerId;
 			} else {
 				respObj.success = false;
-				respObj.response.msg = "Customer not found";
-				res.status(400).send(respObj);
+				respObj.response.msg = 'You are not authorized to perform this action';
+				return res.status(403).send(respObj);
 			}
 		}
+		CustomersDB.findOneAndUpdate({
+			'_id': userId,
+			'dwh_deleted': false
+		}, {
+			$set: {
+				'dwh_deleted': true
+			}
+		}, function (err, customer) {
+			if (err) {
+				next({
+					'msg': 'Error deleting customer',
+					'err': err
+				});
+			} else {
+				if (customer) {
+					respObj.success = true;
+					respObj.response.msg = "Customer successfully deleted";
+					res.send(respObj);
+				} else {
+					respObj.success = false;
+					respObj.response.msg = "Customer not found";
+					res.status(404).send(respObj);
+				}
+			}
+		});
 	});
 };
 
@@ -276,7 +317,7 @@ exports.authenticate_customer = function (req, res, next) {
  * @param  {Object} res Object that is used to send back desired HTTP response
  * @param  {Function} next Function that passes control to the next matching route
  */
-exports.logout_customer = function (req, res, next) {
+/*exports.logout_customer = function (req, res, next) {
 	CustomersDB.findOneAndUpdate({
 		'_id': req.user._id,
 		'dwh_deleted': false
@@ -298,8 +339,8 @@ exports.logout_customer = function (req, res, next) {
 			} else {
 				respObj.success = false;
 				respObj.response.msg = "Customer not found";
-				res.status(400).send(respObj);
+				res.status(404).send(respObj);
 			}
 		}
 	});
-};
+};*/
