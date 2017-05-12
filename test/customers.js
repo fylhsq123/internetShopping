@@ -31,7 +31,7 @@ var mongoose = require('mongoose'),
         "last_name": "",
         "first_name": ""
     };
-
+mongoose.Promise = global.Promise;
 chai.use(chaiHttp).use(chaiAsPromised);
 
 describe('Customers', () => {
@@ -152,20 +152,12 @@ describe('Customers', () => {
         });
     });
 
-    describe('Read information about customers', () => {
+    describe('Read information about customer', () => {
         it('should be possible that customer could read information about himself', (done) => {
             chai.request(server).get('/customer').set("Authorization", authorizationAdmin).end((err, res) => {
                 if (err) return done(err);
                 res.should.have.status(200);
                 res.body.email.should.be.equal(config.customers.admin.email);
-                done();
-            });
-        });
-        it('should not be possible to read information about customer by some other seller or buyer', (done) => {
-            chai.request(server).get('/customer/' + config.customers.admin._id).set("Authorization", authorizationSeller).end((err, res) => {
-                if (err) return done(err);
-                res.should.have.status(200);
-                res.body.email.should.not.be.equal(config.customers.admin.email);
                 done();
             });
         });
@@ -177,20 +169,131 @@ describe('Customers', () => {
                 done();
             });
         });
-        it('should not be possible to read information about any customer by unauthorized user', (done)=>{
-            chai.request(server).get('/customer/' + config.customers.seller._id).end((err, res)=>{
+        it('should not be possible to read information about customer by some other seller or buyer', (done) => {
+            chai.request(server).get('/customer/' + config.customers.admin._id).set("Authorization", authorizationSeller).end((err, res) => {
+                if (err) return done(err);
+                res.should.have.status(200);
+                res.body.email.should.not.be.equal(config.customers.admin.email);
+                done();
+            });
+        });
+        it('should not be possible to read information about any customer by unauthorized user', (done) => {
+            chai.request(server).get('/customer/' + config.customers.seller._id).end((err, res) => {
                 res.should.have.status(401);
                 done();
             });
         });
-        it('should not be possible to read information about not existing customer by administrator', (done)=>{
-            chai.request(server).get('/customer/58f5d9463194692fc8fe3c63').set("Authorization", authorizationAdmin).end((err, res)=>{
-                res.should.have.status(400);
+        it('should not be possible to read information about not existing customer by administrator', (done) => {
+            chai.request(server).get('/customer/58f5d9463194692fc8fe3c63').set("Authorization", authorizationAdmin).end((err, res) => {
+                res.should.have.status(404);
                 done();
             });
         });
-        it('should throw error if customer ID is not valid', (done)=>{
-            chai.request(server).get('/customer/SomeWrongID').set("Authorization", authorizationAdmin).end((err, res)=>{
+        it('should throw error if customer ID is not valid', (done) => {
+            chai.request(server).get('/customer/SomeWrongID').set("Authorization", authorizationAdmin).end((err, res) => {
+                res.should.have.status(500);
+                done();
+            });
+        });
+    });
+    describe('Update information about customer', () => {
+        it('should be possible to update information about customer by himself', (done) => {
+            chai.request(server).put('/customer').set("Authorization", authorizationSeller).send(testCorrectCustomer).end((err, res) => {
+                if (err) return done(err);
+                res.should.have.status(200);
+                Customers.findById(config.customers.seller._id).exec((err, res) => {
+                    if (err) return done(err);
+                    res.email.should.be.equal(testCorrectCustomer.email);
+                    done();
+                });
+                // Customers.findById(config.customers.seller._id).exec().should.eventually.equal(testCorrectCustomer.email).notify(done);
+            });
+        });
+        it('should be possible to update information about any customer by administrator', (done) => {
+            chai.request(server).put('/customer/' + config.customers.seller._id).set("Authorization", authorizationAdmin).send(testCorrectCustomer).end((err, res) => {
+                if (err) return done(err);
+                res.should.have.status(200);
+                Customers.findById(config.customers.seller._id).exec((err, res) => {
+                    if (err) return done(err);
+                    res.email.should.be.equal(testCorrectCustomer.email);
+                    done();
+                });
+            });
+        });
+        it('should not be possible to update information about customer by some other seller or buyer', (done) => {
+            chai.request(server).put('/customer/' + config.customers.admin._id).set("Authorization", authorizationSeller).send(testCorrectCustomer).end((err, res) => {
+                res.should.have.status(403);
+                done();
+            });
+        });
+        it('should not be possible to update information about any customer by unauthorized user', (done) => {
+            chai.request(server).put('/customer/' + config.customers.admin._id).send(testCorrectCustomer).end((err, res) => {
+                res.should.have.status(401);
+                done();
+            });
+        });
+        it('should not be possible to update information about not existing customer by administrator', (done) => {
+            chai.request(server).put('/customer/58f5d9463194692fc8fe3c63').set("Authorization", authorizationAdmin).send(testCorrectCustomer).end((err, res) => {
+                res.should.have.status(404);
+                done();
+            });
+        });
+        it('should throw an error if customer ID is not valid', (done) => {
+            chai.request(server).put('/customer/SomeWrongID').set("Authorization", authorizationAdmin).send(testCorrectCustomer).end((err, res) => {
+                res.should.have.status(500);
+                done();
+            });
+        });
+        it('should throw an error if data is incorrect', (done) => {
+            chai.request(server).put('/customer').set("Authorization", authorizationSeller).send(testIncorrectCustomer).end((err, res) => {
+                res.should.have.status(500);
+                done();
+            });
+        });
+    });
+    describe('Deleting information about customers', () => {
+        it('should be possible that customer could delete information about himself', (done) => {
+            chai.request(server).delete('/customer').set("Authorization", authorizationSeller).end((err, res) => {
+                if (err) return done(err);
+                res.should.have.status(200);
+                Customers.findById(config.customers.seller._id).exec((err, res) => {
+                    if (err) return done(err);
+                    res.dwh_deleted.should.be.equal(true);
+                    done();
+                });
+            });
+        });
+        it('should be possible to delete information about any customer by administrator', (done) => {
+            chai.request(server).delete('/customer/' + config.customers.seller._id).set("Authorization", authorizationAdmin).end((err, res) => {
+                if (err) return done(err);
+                res.should.have.status(200);
+                Customers.findById(config.customers.seller._id).exec((err, res) => {
+                    if (err) return done(err);
+                    res.dwh_deleted.should.be.equal(true);
+                    done();
+                });
+            });
+        });
+        it('should not be possible to delete information about customer by some other seller or buyer', (done) => {
+            chai.request(server).delete('/customer/' + config.customers.admin._id).set("Authorization", authorizationSeller).end((err, res) => {
+                res.should.have.status(403);
+                done();
+            });
+        });
+        it('should not be possible to delete information about any customer by unauthorized user', (done) => {
+            chai.request(server).delete('/customer/' + config.customers.admin._id).end((err, res) => {
+                res.should.have.status(401);
+                done();
+            });
+        });
+        it('should not be possible to delete information about not existing customer by administrator', (done) => {
+            chai.request(server).delete('/customer/58f5d9463194692fc8fe3c63').set("Authorization", authorizationAdmin).end((err, res) => {
+                res.should.have.status(404);
+                done();
+            });
+        });
+        it('should throw an error if customer ID is not valid', (done) => {
+            chai.request(server).delete('/customer/SomeWrongID').set("Authorization", authorizationAdmin).end((err, res) => {
                 res.should.have.status(500);
                 done();
             });
