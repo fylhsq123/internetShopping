@@ -1,6 +1,7 @@
 'use strict';
 
 var path = require('path'),
+    config = require('config'),
     respObj = {
         "success": false,
         "response": {
@@ -9,7 +10,7 @@ var path = require('path'),
     };
 
 exports.load_source = function (req, res, next) {
-    var filePath = path.resolve('./uploads/' + req.params.sourceId);
+    var filePath = path.resolve(config.upload_dir, req.params.sourceId);
     res.sendFile(filePath, function (err) {
         if (err) {
             if (err.status === 404) {
@@ -22,8 +23,6 @@ exports.load_source = function (req, res, next) {
                     'err': err
                 });
             }
-        } else {
-            console.log('Sent:', req.params.sourceId);
         }
     });
 };
