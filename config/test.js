@@ -7,7 +7,7 @@ module.exports = {
 		'address': '192.168.2.65',
 		'port': '3005'
 	},
-	'upload_dir': './tests/uploads/',
+	'upload_dir': './uploads/test/',
 	'database': 'mongodb://localhost:27017/internetShopping_test',
 	'jwtSecret': cryptiles.randomString(64),
 	// fake customers for testing
@@ -80,5 +80,101 @@ module.exports = {
 		"_id": mongoose.Types.ObjectId("58fdf379746c70e8a1759a5b"),
 		"name": "Products Seller",
 		"type": "seller"
+	}],
+	'testFile': {
+		'name': 'test1.txt',
+		'content': 'Hello'
+	},
+	'categories': [{
+		"_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c4"),
+		"name": "Category_01",
+		"description": "Category_01 description",
+		"parent_id": mongoose.Types.ObjectId("000000000000000000000000")
+	}, {
+		"_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234bf"),
+		"name": "SubCategory_11",
+		"description": "SubCategory_11 description",
+		"parent_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c4")
+	}, {
+		"_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c0"),
+		"name": "SubCategory_12",
+		"description": "SubCategory_12 description",
+		"parent_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c4")
+	}, {
+		"_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c1"),
+		"name": "SubCategory_13",
+		"description": "SubCategory_13 description",
+		"parent_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c4")
+	}, {
+		"_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c5"),
+		"name": "Category_02",
+		"description": "Category_02 description",
+		"parent_id": mongoose.Types.ObjectId("000000000000000000000000")
+	}, {
+		"_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c2"),
+		"name": "SubCategory_21",
+		"description": "SubCategory_21 description",
+		"parent_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c5")
+	}, {
+		"_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c3"),
+		"name": "SubCategory_22",
+		"description": "SubCategory_22 description",
+		"parent_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c5")
+	}],
+	'products': [{
+		"_id": mongoose.Types.ObjectId("58ff577e8cceae2904475c6a"),
+		"name": "Test product 1",
+		"description": "Test product 1 description",
+		"image": "test1.jpg",
+		"subcategory_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c0"),
+		"seller_id": mongoose.Types.ObjectId("58f7517043fde1207c1562a2"),
+		"price_sold": 230.24234,
+		"price_bought": 100.234,
+		"count_sold": 3,
+		"count_bought": 10,
+	}, {
+		"_id": mongoose.Types.ObjectId("58ff59900981bf1f5477fa66"),
+		"name": "Test product 1",
+		"description": "Test product 1 description",
+		"image": "test1.jpg",
+		"subcategory_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c0"),
+		"seller_id": mongoose.Types.ObjectId("58f7517043fde1207c1562a2"),
+		"price_sold": 230.24234,
+		"price_bought": 100.234,
+		"count_sold": 3,
+		"count_bought": 10,
+	}, {
+		"_id": mongoose.Types.ObjectId("58ff577e8cceae2904475c6a"),
+		"name": "Test product 1",
+		"description": "Test product 1 description",
+		"image": "test1.jpg",
+		"subcategory_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c0"),
+		"seller_id": mongoose.Types.ObjectId("58f7517043fde1207c1562a2"),
+		"price_sold": 230.24234,
+		"price_bought": 100.234,
+		"count_sold": 3,
+		"count_bought": 10,
+	}, {
+		"_id": mongoose.Types.ObjectId("58ff577e8cceae2904475c6a"),
+		"name": "Test product 1",
+		"description": "Test product 1 description",
+		"image": "test1.jpg",
+		"subcategory_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c0"),
+		"seller_id": mongoose.Types.ObjectId("58f7517043fde1207c1562a2"),
+		"price_sold": 230.24234,
+		"price_bought": 100.234,
+		"count_sold": 3,
+		"count_bought": 10,
+	}, {
+		"_id": mongoose.Types.ObjectId("58ff577e8cceae2904475c6a"),
+		"name": "Test product 1",
+		"description": "Test product 1 description",
+		"image": "test1.jpg",
+		"subcategory_id": mongoose.Types.ObjectId("58fdb56d93c22716c88234c0"),
+		"seller_id": mongoose.Types.ObjectId("58f7517043fde1207c1562a2"),
+		"price_sold": 230.24234,
+		"price_bought": 100.234,
+		"count_sold": 3,
+		"count_bought": 10,
 	}]
 };
