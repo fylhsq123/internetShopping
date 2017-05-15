@@ -11,6 +11,11 @@ module.exports = function (app, passport) {
 		.get(passport.authenticate('jwt', config.jwtSession), customers.list_all_customers)
 		.post(customers.create_customer);
 
+	app.route('/customers1')
+		.get(passport.authenticate('jwt', config.jwtSession), customers.list_all_customers1);
+	app.route('/customers2')
+		.get(passport.authenticate('jwt', config.jwtSession), customers.list_all_customers2);
+
 	/**
 	 * Customer authentication methods
 	 */
