@@ -1,17 +1,16 @@
 'use strict';
 process.env.NODE_ENV = 'test';
-var /*mongoose = require('mongoose'),*/
-    CountriesCities = require('../api/models/countriesCities.js'),
+var CountriesCities = require('../api/models/countriesCities.js'),
 
     chai = require('chai'),
     should = chai.should(),
     chaiHttp = require('chai-http'),
-    chaiAsPromised = require('chai-as-promised'),
+
     server = require('../server'),
     config = require('config'),
     countryId = config.countries[0]._id;
 
-chai.use(chaiHttp).use(chaiAsPromised);
+chai.use(chaiHttp);
 
 describe('CountriesCities', () => {
     beforeEach(() => {

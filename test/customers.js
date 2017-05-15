@@ -7,11 +7,12 @@ var mongoose = require('mongoose'),
     Roles = require('../api/models/roles'),
 
     chai = require('chai'),
-    should = chai.should(),
     chaiHttp = require('chai-http'),
     chaiAsPromised = require('chai-as-promised'),
+
     server = require('../server'),
     config = require('config'),
+
     testCorrectCustomer = {
         "email": "TestName.TestSurname@test.com",
         "password": "test123",
@@ -31,6 +32,7 @@ var mongoose = require('mongoose'),
         "last_name": "",
         "first_name": ""
     };
+chai.should();
 mongoose.Promise = global.Promise;
 chai.use(chaiHttp).use(chaiAsPromised);
 
