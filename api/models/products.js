@@ -64,7 +64,7 @@ ProductsSchema.virtual('is_available').get(function () {
     return this.count_bought - this.count_sold > 0 ? true : false;
 });
 ProductsSchema.virtual('image_url').get(function () {
-    return 'http://' + config.server.address + ':' + config.server.port + '/sources/' + this.image;
+    return this.image ? 'http://' + config.server.address + ':' + config.server.port + '/sources/' + this.image : "";
 });
 
 ProductsSchema.virtual('category', {
