@@ -57,6 +57,67 @@ exports.list_all_customers = function (req, res, next) {
 		}
 	});
 };
+exports.list_all_customers1 = function (req, res, next) {
+	Roles.findById(req.user.role_id).exec().then((role) => {
+		if (role && role.type === 'admin') {
+			CustomersDB.find({}).select({
+				'password': 0
+			}).populate({
+				path: 'country',
+				select: 'country'
+			}).populate({
+				path: 'role_id',
+				select: '-_id name type'
+			}).exec().then((customers) => {
+				res.send(customers);
+			}).catch((err) => {
+				next({
+					'msg': 'Error listing customers',
+					'err': err
+				});
+			});
+		} else {
+			respObj.success = false;
+			respObj.response.msg = 'You are not authorized to perform this action';
+			res.status(403).send(respObj);
+		}
+	}).catch((err) => {
+		next({
+			'msg': 'Error getting roles',
+			'err': err
+		});
+	});
+};
+
+exports.list_all_customers2 = function (req, res, next) {
+	Roles.findById(req.user.role_id).exec().then((role) => {
+		if (role && role.type === 'admin') {
+			return CustomersDB.find({}).select({
+				'password': 0
+			}).populate({
+				path: 'country',
+				select: 'country'
+			}).populate({
+				path: 'role_id',
+				select: '-_id name type'
+			}).exec();
+		} else {
+			respObj.success = false;
+			respObj.response.msg = 'You are not authorized to perform this action';
+			return respObj;
+			//res.status(403).send(respObj);
+		}
+	}).then((customers) => {
+		console.log("resolved");
+		res.send(customers);
+	}).catch((err) => {
+		console.log("error");
+		next({
+			'msg': 'Error occured',
+			'err': err
+		});
+	});
+};
 
 /**
  * Method is used to create/register new customer
