@@ -1,7 +1,7 @@
 'use strict';
 
 var mongoose = require('mongoose'),
-	CustomersDB = mongoose.model('Customers'),
+	Customers = mongoose.model('Customers'),
 	Roles = mongoose.model('Roles'),
 	jwt = require('jwt-simple'),
 	config = require('config'),
@@ -19,80 +19,9 @@ var mongoose = require('mongoose'),
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.list_all_customers = function (req, res, next) {
-	Roles.findById(req.user.role_id, function (err, role) {
-		if (err) {
-			next({
-				'msg': 'Error getting roles',
-				'err': err
-			});
-		} else {
-			if (role && role.type === 'admin') {
-				CustomersDB.find({})
-					.select({
-						'password': 0
-					})
-					.populate({
-						path: 'country',
-						select: 'country'
-					})
-					.populate({
-						path: 'role_id',
-						select: '-_id name type'
-					})
-					.exec(function (err, customers) {
-						if (err) {
-							next({
-								'msg': 'Error listing customers',
-								'err': err
-							});
-						} else {
-							res.send(customers);
-						}
-					});
-			} else {
-				respObj.success = false;
-				respObj.response.msg = 'You are not authorized to perform this action';
-				res.status(403).send(respObj);
-			}
-		}
-	});
-};
-exports.list_all_customers1 = function (req, res, next) {
 	Roles.findById(req.user.role_id).exec().then((role) => {
 		if (role && role.type === 'admin') {
-			CustomersDB.find({}).select({
-				'password': 0
-			}).populate({
-				path: 'country',
-				select: 'country'
-			}).populate({
-				path: 'role_id',
-				select: '-_id name type'
-			}).exec().then((customers) => {
-				res.send(customers);
-			}).catch((err) => {
-				next({
-					'msg': 'Error listing customers',
-					'err': err
-				});
-			});
-		} else {
-			respObj.success = false;
-			respObj.response.msg = 'You are not authorized to perform this action';
-			res.status(403).send(respObj);
-		}
-	}).catch((err) => {
-		next({
-			'msg': 'Error getting roles',
-			'err': err
-		});
-	});
-};
-
-exports.list_all_customers2 = function (req, res, next) {
-	Roles.findById(req.user.role_id).exec().then((role) => {
-		if (role && role.type === 'admin') {
-			return CustomersDB.find({}).select({
+			return Customers.find({}).select({
 				'password': 0
 			}).populate({
 				path: 'country',
@@ -104,18 +33,20 @@ exports.list_all_customers2 = function (req, res, next) {
 		} else {
 			respObj.success = false;
 			respObj.response.msg = 'You are not authorized to perform this action';
-			return respObj;
-			//res.status(403).send(respObj);
+			respObj.statusCode = 403;
+			throw respObj;
 		}
-	}).then((customers) => {
-		console.log("resolved");
-		res.send(customers);
+	}).then((obj) => {
+		res.send(obj);
 	}).catch((err) => {
-		console.log("error");
-		next({
-			'msg': 'Error occured',
-			'err': err
-		});
+		if (err.statusCode) {
+			res.status(err.statusCode).send(err);
+		} else {
+			next({
+				'msg': 'Error occured',
+				'err': err
+			});
+		}
 	});
 };
 
@@ -126,16 +57,18 @@ exports.list_all_customers2 = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.create_customer = function (req, res, next) {
-	var new_customer = new CustomersDB(req.body);
+	var new_customer = new Customers(req.body);
 	new_customer.save(function (err, customer) {
 		if (err) {
 			respObj.success = false;
 			if (err.name && err.name === "ValidationError") {
 				respObj.response.msg = err.errors;
-				res.status(400).send(respObj);
+				respObj.statusCode = 400;
+				res.status(respObj.statusCode).send(respObj);
 			} else if (err.code === 11000) {
 				respObj.response.msg = "This email is alreay in use now";
-				res.status(409).send(respObj);
+				respObj.statusCode = 409;
+				res.status(respObj.statusCode).send(respObj);
 			} else {
 				next({
 					'msg': 'Error registering new customer',
@@ -143,7 +76,7 @@ exports.create_customer = function (req, res, next) {
 				});
 			}
 		} else {
-			var response = Object.assign({}, customer._doc, {
+			var response = Object.assign({}, customer.toObject(), {
 				'success': true
 			});
 			delete response.dwh_deleted;
@@ -165,18 +98,12 @@ exports.create_customer = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.read_customer_info = function (req, res, next) {
-	Roles.findById(req.user.role_id, function (err, role) {
+	Roles.findById(req.user.role_id).exec().then((role) => {
 		var userId = req.user._id;
-		if (err) {
-			return next({
-				'msg': 'Error getting roles',
-				'err': err
-			});
-		}
 		if (role && role.type === 'admin') {
 			userId = req.params.customerId || userId;
 		}
-		CustomersDB.findById(userId).where({
+		return Customers.findById(userId).where({
 			'dwh_deleted': false
 		}).select(Object.assign({}, config.technicalFields, {
 			'password': 0
@@ -186,21 +113,20 @@ exports.read_customer_info = function (req, res, next) {
 		}).populate({
 			path: 'role_id',
 			select: '-_id name type'
-		}).exec(function (err, customer) {
-			if (err) {
-				next({
-					'msg': 'Error reading customer information',
-					'err': err
-				});
-			} else {
-				if (customer) {
-					res.send(customer);
-				} else {
-					respObj.success = false;
-					respObj.response.msg = "Customer not found";
-					res.status(404).send(respObj);
-				}
-			}
+		}).exec();
+	}).then((obj) => {
+		if (obj) {
+			res.send(obj);
+		} else {
+			respObj.success = false;
+			respObj.response.msg = "Customer not found";
+			respObj.statusCode = 404;
+			res.status(respObj.statusCode).send(respObj);
+		}
+	}).catch((err) => {
+		next({
+			'msg': 'Error occured',
+			'err': err
 		});
 	});
 };
@@ -212,19 +138,12 @@ exports.read_customer_info = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.update_customer = function (req, res, next) {
-	Roles.findById(req.user.role_id, function (err, role) {
-		if (err) {
-			return next({
-				'msg': 'Error getting roles',
-				'err': err
-			});
-		}
+	Roles.findById(req.user.role_id).exec().then((role) => {
 		var userId = req.user._id,
 			selectFields = Object.assign({}, config.technicalFields, {
 				'password': 0,
 				'role_id': 0
 			});
-
 		if (req.params.customerId && req.params.customerId !== req.user._id) {
 			if (role && role.type === 'admin') {
 				userId = req.params.customerId;
@@ -232,10 +151,11 @@ exports.update_customer = function (req, res, next) {
 			} else {
 				respObj.success = false;
 				respObj.response.msg = 'You are not authorized to perform this action';
-				return res.status(403).send(respObj);
+				respObj.statusCode = 403;
+				throw respObj;
 			}
 		}
-		CustomersDB.findOneAndUpdate({
+		return Customers.findOneAndUpdate({
 			'_id': userId,
 			'dwh_deleted': false
 		}, {
@@ -243,24 +163,27 @@ exports.update_customer = function (req, res, next) {
 		}, {
 			fields: selectFields,
 			runValidators: true
-		}, function (err, customer) {
-			if (err) {
-				next({
-					'msg': 'Error updating information about customer',
-					'err': err
-				});
-			} else {
-				if (customer) {
-					respObj.success = true;
-					respObj.response.msg = "Information about customer was successfully updated";
-					res.send(respObj);
-				} else {
-					respObj.success = false;
-					respObj.response.msg = "Customer not found";
-					res.status(404).send(respObj);
-				}
-			}
 		});
+	}).then((obj) => {
+		if (obj) {
+			respObj.success = true;
+			respObj.response.msg = "Information about customer was successfully updated";
+			respObj.statusCode = 200;
+		} else {
+			respObj.success = false;
+			respObj.response.msg = "Customer not found";
+			respObj.statusCode = 404;
+		}
+		res.status(respObj.statusCode).send(respObj);
+	}).catch((err) => {
+		if (err.statusCode) {
+			res.status(err.statusCode).send(err);
+		} else {
+			next({
+				'msg': 'Error occured',
+				'err': err
+			});
+		}
 	});
 };
 
@@ -271,13 +194,7 @@ exports.update_customer = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.delete_customer = function (req, res, next) {
-	Roles.findById(req.user.role_id, function (err, role) {
-		if (err) {
-			return next({
-				'msg': 'Error getting roles',
-				'err': err
-			});
-		}
+	Roles.findById(req.user.role_id).exec().then((role) => {
 		var userId = req.user._id;
 
 		if (req.params.customerId && req.params.customerId !== req.user._id) {
@@ -286,34 +203,38 @@ exports.delete_customer = function (req, res, next) {
 			} else {
 				respObj.success = false;
 				respObj.response.msg = 'You are not authorized to perform this action';
-				return res.status(403).send(respObj);
+				respObj.statusCode = 403;
+				throw respObj;
 			}
 		}
-		CustomersDB.findOneAndUpdate({
+		return Customers.findOneAndUpdate({
 			'_id': userId,
 			'dwh_deleted': false
 		}, {
 			$set: {
 				'dwh_deleted': true
 			}
-		}, function (err, customer) {
-			if (err) {
-				next({
-					'msg': 'Error deleting customer',
-					'err': err
-				});
-			} else {
-				if (customer) {
-					respObj.success = true;
-					respObj.response.msg = "Customer successfully deleted";
-					res.send(respObj);
-				} else {
-					respObj.success = false;
-					respObj.response.msg = "Customer not found";
-					res.status(404).send(respObj);
-				}
-			}
 		});
+	}).then((obj) => {
+		if (obj) {
+			respObj.success = true;
+			respObj.response.msg = "Customer successfully deleted";
+			respObj.statusCode = 200;
+		} else {
+			respObj.success = false;
+			respObj.response.msg = "Customer not found";
+			respObj.statusCode = 404;
+		}
+		res.status(respObj.statusCode).send(respObj);
+	}).catch((err) => {
+		if (err.statusCode) {
+			res.status(err.statusCode).send(err);
+		} else {
+			next({
+				'msg': 'Error occured',
+				'err': err
+			});
+		}
 	});
 };
 
@@ -324,7 +245,7 @@ exports.delete_customer = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.authenticate_customer = function (req, res, next) {
-	CustomersDB.findOne({
+	Customers.findOne({
 			'email': req.body.email,
 			'dwh_deleted': false
 		})
@@ -359,7 +280,7 @@ exports.authenticate_customer = function (req, res, next) {
 						var customerInfo = Object.assign({}, {
 							success: true,
 							token: 'JWT ' + token
-						}, customer._doc);
+						}, customer.toObject());
 						delete customerInfo.password;
 						res.send(customerInfo);
 					} else {
@@ -379,7 +300,7 @@ exports.authenticate_customer = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 /*exports.logout_customer = function (req, res, next) {
-	CustomersDB.findOneAndUpdate({
+	Customers.findOneAndUpdate({
 		'_id': req.user._id,
 		'dwh_deleted': false
 	}, {
