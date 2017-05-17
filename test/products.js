@@ -9,15 +9,19 @@ var Customers = require('../api/models/customers'),
 
     chai = require('chai'),
     chaiHttp = require('chai-http'),
+    chaiFiles = require('chai-files'),
+    file = chaiFiles.file,
+    fs = require('fs'),
+    path = require('path'),
+    Promise = require('bluebird'),
 
     server = require('../server'),
     config = require('config');
 
-chai.use(chaiHttp).should();
+chai.use(chaiHttp).use(chaiFiles).should();
 
 describe('Products', () => {
-    var authorizationAdmin, authorizationSeller,
-        customersArr = [config.customers.admin, config.customers.seller, config.customers.buyer];
+    var customersArr = [config.customers.admin, config.customers.seller, config.customers.buyer];
 
     before('Load data into related tables', () => {
         return Customers.remove({}).then(() => {
@@ -111,14 +115,14 @@ describe('Products', () => {
                     done();
                 });
             });
-            it('should be possible to list all products that belong to specified category in descending order by name', (done) => {
-                chai.request(server).get('/products/bysubcategory/' + config.categories[1]._id + '/name/desc').end((err, res) => {
+            it('should be possible to list all products that belong to specified category in ascending order by name', (done) => {
+                chai.request(server).get('/products/bysubcategory/' + config.categories[1]._id + '/name/asc').end((err, res) => {
                     if (err) return done(err);
                     res.should.have.status(200);
                     var productsSorted = config.products.filter((elem) => {
                         return elem.subcategory_id.toString() == config.categories[1]._id.toString();
                     }).sort((a, b) => {
-                        return a.name < b.name ? 1 : -1;
+                        return a.name < b.name ? -1 : 1;
                     });
                     res.body.should.have.length(productsSorted.length);
                     res.body.should.satisfy((val) => {
@@ -219,42 +223,266 @@ describe('Products', () => {
     });
 
     describe('Managing product', () => {
-        describe('creating new product', () => {
-            it.skip('should be possible to create new product by authorized seller or administrator', (done) => {
-                done();
-            });
-            it.skip('should not be possible to create new product by authorized buyer', (done) => {
-                done();
-            });
-            it.skip('should not be possible to create new product by unauthorized user', (done) => {
+        var authorizationBuyer, authorizationSeller,
+            testValidProduct = {
+                "name": "Test product3456563456",
+                "description": "Test product description",
+                "subcategory_id": "58fdb56d93c22716c88234bf",
+                "price_sold": 123.45,
+                "price_bought": 100.00,
+                "count_sold": 15,
+                "count_bought": 20,
+            },
+            testInvalidProduct = {
+                "name": "",
+                "description": ""
+            };
+        beforeEach('authenticate buyer', (done) => {
+            chai.request(server).post('/authenticate').send({
+                email: config.customers.buyer.email,
+                password: config.customers.buyer.password_unhashed
+            }).end((err, res) => {
+                if (err) return done(err);
+                authorizationBuyer = res.body.token;
                 done();
             });
         });
+        beforeEach('authenticate seller', (done) => {
+            chai.request(server).post('/authenticate').send({
+                email: config.customers.seller.email,
+                password: config.customers.seller.password_unhashed
+            }).end((err, res) => {
+                if (err) return done(err);
+                authorizationSeller = res.body.token;
+                done();
+            });
+        });
+        describe('creating new product', () => {
+            beforeEach('create fake file', () => {
+                return new Promise((resolve, reject) => {
+                    fs.writeFile(config.upload_dir + config.testFile.name, config.testFile.content, (err) => {
+                        if (err) return reject(err);
+                        fs.writeFile(config.upload_dir + config.testImageFile.name, config.testImageFile.content, (err) => {
+                            if (err) return reject(err);
+                            resolve();
+                        });
+                    });
+                });
+            });
+            it('should be possible to create new product by authorized seller or administrator', (done) => {
+                chai.request(server).post('/product').set("Authorization", authorizationSeller)
+                    .field("name", testValidProduct.name)
+                    .field("description", testValidProduct.description)
+                    .field("count_bought", testValidProduct.count_bought)
+                    .field("count_sold", testValidProduct.count_sold)
+                    .field("price_bought", testValidProduct.price_bought)
+                    .field("price_sold", testValidProduct.price_sold)
+                    .field("subcategory_id", testValidProduct.subcategory_id)
+                    .attach('image', fs.readFileSync(config.upload_dir + config.testImageFile.name), config.testImageFile.name)
+                    .end((err, res) => {
+                        if (err) return done(err);
+                        res.should.have.status(201);
+                        res.body.name.should.be.equal(testValidProduct.name);
+                        res.body.image.should.not.be.empty;
+                        file(config.upload_dir + res.body.image).should.exist;
+                        done();
+                    });
+            });
+            it('should ignore other files except images', (done) => {
+                chai.request(server).post('/product').set("Authorization", authorizationSeller)
+                    .field("name", testValidProduct.name)
+                    .field("description", testValidProduct.description)
+                    .field("count_bought", testValidProduct.count_bought)
+                    .field("count_sold", testValidProduct.count_sold)
+                    .field("price_bought", testValidProduct.price_bought)
+                    .field("price_sold", testValidProduct.price_sold)
+                    .field("subcategory_id", testValidProduct.subcategory_id)
+                    .attach('image', fs.readFileSync(config.upload_dir + config.testFile.name), config.testFile.name)
+                    .end((err, res) => {
+                        if (err) return done(err);
+                        res.should.have.status(201);
+                        res.body.name.should.be.equal(testValidProduct.name);
+                        res.body.image.should.be.empty;
+                        done();
+                    });
+            });
+            it('should not be possible to create new product by authorized seller or administrator if input data is invalid', (done) => {
+                chai.request(server).post('/product/').set("Authorization", authorizationSeller)
+                    .field("name", testInvalidProduct.name)
+                    .field("description", testInvalidProduct.description)
+                    .end((err, res) => {
+                        res.should.have.status(400);
+                        done();
+                    });
+            });
+            it('should not be possible to create new product by authorized buyer', (done) => {
+                chai.request(server).post('/product').set("Authorization", authorizationBuyer)
+                    .field("name", testValidProduct.name)
+                    .field("description", testValidProduct.description)
+                    .field("count_bought", testValidProduct.count_bought)
+                    .field("count_sold", testValidProduct.count_sold)
+                    .field("price_bought", testValidProduct.price_bought)
+                    .field("price_sold", testValidProduct.price_sold)
+                    .field("subcategory_id", testValidProduct.subcategory_id)
+                    .attach('image', fs.readFileSync(config.upload_dir + config.testImageFile.name), config.testImageFile.name)
+                    .end((err, res) => {
+                        res.should.have.status(403);
+                        done();
+                    });
+            });
+            it('should not be possible to create new product by unauthorized user', (done) => {
+                chai.request(server).post('/product')
+                    .field("name", testValidProduct.name)
+                    .field("description", testValidProduct.description)
+                    .field("count_bought", testValidProduct.count_bought)
+                    .field("count_sold", testValidProduct.count_sold)
+                    .field("price_bought", testValidProduct.price_bought)
+                    .field("price_sold", testValidProduct.price_sold)
+                    .field("subcategory_id", testValidProduct.subcategory_id)
+                    .attach('image', fs.readFileSync(config.upload_dir + config.testImageFile.name), config.testImageFile.name)
+                    .end((err, res) => {
+                        res.should.have.status(401);
+                        done();
+                    });
+            });
+        });
         describe('getting detailed information about product', () => {
-            it.skip('should be possible to get information about product by authorized seller or administrator', (done) => {
-                done();
+            it('should be possible to get information about product by authorized seller or administrator', (done) => {
+                chai.request(server).get('/product/' + config.products[0]._id).set("Authorization", authorizationSeller).end((err, res) => {
+                    if (err) return done(err);
+                    res.should.have.status(200);
+                    res.body._id.should.be.equal(config.products[0]._id.toString());
+                    res.body.name.should.be.equal(config.products[0].name);
+                    done();
+                });
             });
-            it.skip('should not be possible to get information about product by authorized buyer', (done) => {
-                done();
+            it('should not be possible to get information about product by authorized buyer', (done) => {
+                chai.request(server).get('/product/' + config.products[0]._id).set("Authorization", authorizationBuyer).end((err, res) => {
+                    res.should.have.status(403);
+                    done();
+                });
             });
-            it.skip('should not be possible to get information about product by unauthorized user', (done) => {
-                done();
+            it('should not be possible to get information about product by unauthorized user', (done) => {
+                chai.request(server).get('/product/' + config.products[0]._id).end((err, res) => {
+                    res.should.have.status(401);
+                    done();
+                });
             });
-            it.skip('should throw an error if specified product ID does not exist', (done) => {
-                chai.request(server).get('/products/58ff577e8cceae2904475c6b').end((err, res) => {
+            it('should throw an error if specified product ID does not exist', (done) => {
+                chai.request(server).get('/product/58ff577e8cceae2904475c6b').set("Authorization", authorizationSeller).end((err, res) => {
                     res.should.have.status(404);
                     done();
                 });
             });
-            it.skip('should throw an error if specified product ID is not valid', (done) => {
-                chai.request(server).get('/product/58ff577e8cceae2904475c6g').end((err, res) => {
+            it('should throw an error if specified product ID is not valid', (done) => {
+                chai.request(server).get('/product/58ff577e8cceae2904475c6g').set("Authorization", authorizationSeller).end((err, res) => {
                     res.should.have.status(500);
                     done();
                 });
             });
         });
-        describe('updating information about product', () => {});
-        describe('deleting information about product', () => {});
+        describe('updating information about product', () => {
+            beforeEach('create fake file', () => {
+                return new Promise((resolve, reject) => {
+                    fs.writeFile(config.upload_dir + config.testFile.name, config.testFile.content, (err) => {
+                        if (err) return reject(err);
+                        fs.writeFile(config.upload_dir + config.testImageFile.name, config.testImageFile.content, (err) => {
+                            if (err) return reject(err);
+                            resolve();
+                        });
+                    });
+                });
+            });
+            it('should be possible to update product by authorized seller or administrator', (done) => {
+                chai.request(server).put('/product/' + config.products[0]._id).set("Authorization", authorizationSeller)
+                    .field("name", testValidProduct.name)
+                    .field("description", testValidProduct.description)
+                    .field("count_bought", testValidProduct.count_bought)
+                    .field("count_sold", testValidProduct.count_sold)
+                    .field("price_bought", testValidProduct.price_bought)
+                    .field("price_sold", testValidProduct.price_sold)
+                    .field("subcategory_id", testValidProduct.subcategory_id)
+                    .attach('image', fs.readFileSync(config.upload_dir + config.testImageFile.name), config.testImageFile.name)
+                    .end((err, res) => {
+                        if (err) return done(err);
+                        res.should.have.status(200);
+                        res.body.response.msg.should.not.be.empty;
+                        done();
+                    });
+            });
+            it('should not be possible to update product by authorized seller or administrator if input data is invalid', (done) => {
+                chai.request(server).put('/product/' + config.products[0]._id).set("Authorization", authorizationSeller)
+                    .field("name", testInvalidProduct.name)
+                    .field("description", testInvalidProduct.description)
+                    .end((err, res) => {
+                        res.should.have.status(400);
+                        done();
+                    });
+            });
+            it('should not be possible to update product by authorized buyer', (done) => {
+                chai.request(server).put('/product/' + config.products[0]._id).set("Authorization", authorizationBuyer)
+                    .field("name", testValidProduct.name)
+                    .field("description", testValidProduct.description)
+                    .field("count_bought", testValidProduct.count_bought)
+                    .field("count_sold", testValidProduct.count_sold)
+                    .field("price_bought", testValidProduct.price_bought)
+                    .field("price_sold", testValidProduct.price_sold)
+                    .field("subcategory_id", testValidProduct.subcategory_id)
+                    .attach('image', fs.readFileSync(config.upload_dir + config.testImageFile.name), config.testImageFile.name)
+                    .end((err, res) => {
+                        res.should.have.status(403);
+                        done();
+                    });
+            });
+            it('should not be possible to update product by unauthorized user', (done) => {
+                chai.request(server).put('/product/' + config.products[0]._id)
+                    .field("name", testValidProduct.name)
+                    .field("description", testValidProduct.description)
+                    .field("count_bought", testValidProduct.count_bought)
+                    .field("count_sold", testValidProduct.count_sold)
+                    .field("price_bought", testValidProduct.price_bought)
+                    .field("price_sold", testValidProduct.price_sold)
+                    .field("subcategory_id", testValidProduct.subcategory_id)
+                    .attach('image', fs.readFileSync(config.upload_dir + config.testImageFile.name), config.testImageFile.name)
+                    .end((err, res) => {
+                        res.should.have.status(401);
+                        done();
+                    });
+            });
+        });
+        describe('deleting information about product', () => {
+            it('should be possible to delete information about product by authorized seller or administrator', (done) => {
+                chai.request(server).del('/product/' + config.products[0]._id).set("Authorization", authorizationSeller).end((err, res) => {
+                    if (err) return done(err);
+                    res.should.have.status(200);
+                    done();
+                });
+            });
+            it('should not be possible to delete information about product by authorized buyer', (done) => {
+                chai.request(server).del('/product/' + config.products[0]._id).set("Authorization", authorizationBuyer).end((err, res) => {
+                    res.should.have.status(403);
+                    done();
+                });
+            });
+            it('should not be possible to delete information about product by unauthorized user', (done) => {
+                chai.request(server).del('/product/' + config.products[0]._id).end((err, res) => {
+                    res.should.have.status(401);
+                    done();
+                });
+            });
+            it('should throw an error if specified product ID does not exist', (done) => {
+                chai.request(server).del('/product/58ff577e8cceae2904475c6b').set("Authorization", authorizationSeller).end((err, res) => {
+                    res.should.have.status(404);
+                    done();
+                });
+            });
+            it('should throw an error if specified product ID is not valid', (done) => {
+                chai.request(server).del('/product/58ff577e8cceae2904475c6g').set("Authorization", authorizationSeller).end((err, res) => {
+                    res.should.have.status(500);
+                    done();
+                });
+            });
+        });
     });
 
     after('Cleanup tables', () => {
@@ -266,6 +494,27 @@ describe('Products', () => {
             return Categories.remove({});
         }).then(() => {
             return Products.remove({});
+        });
+    });
+    after('Delete temporary files', (done) => {
+        fs.readdir(config.upload_dir, (err, files) => {
+            if (err) throw err;
+            var promises = [];
+
+            for (let file of files) {
+                let promise = new Promise((resolve, reject) => {
+                    fs.unlink(path.join(config.upload_dir, file), err => {
+                        if (err) return reject(err);
+                        resolve();
+                    });
+                });
+                promises.push(promise);
+            }
+            Promise.all(promises).then(() => {
+                done();
+            }).catch((err) => {
+                done(err);
+            })
         });
     });
 });
