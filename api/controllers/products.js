@@ -120,6 +120,7 @@ exports.create_new_product = function (req, res, next) {
                 Object.assign(fields, {
                     image: newFileName ? newFileName + ext : ""
                 });
+                fields.seller_id = req.user._id;
                 var new_product = new Products(fields);
                 new_product.save(function (err, product) {
                     if (err) {
@@ -167,7 +168,6 @@ exports.create_new_product = function (req, res, next) {
                                 });
                                 res.status(201).send(response);
                             } else {
-                                console.warn('Product not found');
                                 respObj.success = false;
                                 respObj.response.msg = "Product not found";
                                 res.status(404).send(respObj);
@@ -223,7 +223,6 @@ exports.read_product_info = function (req, res, next) {
                     if (product) {
                         res.send(product);
                     } else {
-                        console.warn('Product not found');
                         respObj.success = false;
                         respObj.response.msg = "Product not found";
                         res.status(404).send(respObj);
@@ -290,19 +289,27 @@ exports.update_product_info = function (req, res, next) {
                 }
                 Products.findOneAndUpdate(updateConditions, {
                     $set: fields
+                }, {
+                    runValidators: true
                 }, function (err, product) {
                     if (err) {
-                        return next({
-                            'msg': 'Error updating product',
-                            'err': err
-                        });
+                        respObj.success = false;
+                        if (err.name && err.name === "ValidationError") {
+                            respObj.response.msg = err.errors;
+                            res.status(400).send(respObj);
+                        } else {
+                            next({
+                                'msg': 'Error updating product',
+                                'err': err
+                            });
+                        }
+                        return;
                     }
                     if (product) {
                         respObj.success = true;
                         respObj.response.msg = "Product successfully updated";
                         res.send(respObj);
                     } else {
-                        console.warn('Product not found');
                         respObj.success = false;
                         respObj.response.msg = "Product not found";
                         res.status(404).send(respObj);
@@ -324,13 +331,7 @@ exports.update_product_info = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.delete_product_info = function (req, res, next) {
-    Roles.findById(req.user.role_id, function (err, role) {
-        if (err) {
-            return next({
-                'msg': 'Error getting roles',
-                'err': err
-            });
-        }
+    Roles.findById(req.user.role_id).then((role) => {
         if (role && ['admin', 'seller'].indexOf(role.type) >= 0) {
             var deleteConditions = {
                 '_id': req.params.productId,
@@ -341,68 +342,71 @@ exports.delete_product_info = function (req, res, next) {
                     'seller_id': req.user._id
                 });
             }
-            Products.findOneAndUpdate(deleteConditions, {
+            return Products.findOneAndUpdate(deleteConditions, {
                 $set: {
                     'dwh_deleted': true
-                }
-            }, function (err, product) {
-                if (err) {
-                    return next({
-                        'msg': 'Error deleting product',
-                        'err': err
-                    });
-                }
-                if (product) {
-                    respObj.success = true;
-                    respObj.response.msg = "Product successfully deleted";
-                    res.send(respObj);
-                } else {
-                    console.warn('Product not found');
-                    respObj.success = false;
-                    respObj.response.msg = "Product not found";
-                    res.status(404).send(respObj);
                 }
             });
         } else {
             respObj.success = false;
             respObj.response.msg = 'You are not authorized to perform this action';
-            res.status(403).send(respObj);
+            respObj.statusCode = 403;
+            throw respObj;
+        }
+    }).then((obj) => {
+        if (obj) {
+            respObj.success = true;
+            respObj.response.msg = "Product successfully deleted";
+            respObj.statusCode = 200;
+        } else {
+            respObj.success = false;
+            respObj.response.msg = "Product not found";
+            respObj.statusCode = 404;
+        }
+        res.status(respObj.statusCode).send(respObj);
+    }).catch((err) => {
+        if (err.statusCode) {
+            res.status(err.statusCode).send(err);
+        } else {
+            next({
+                'msg': 'Error occured',
+                'err': err
+            });
         }
     });
 };
 
 
-exports.broadcast = function (req, res, next) {
-    Products.findById("5912bbf3bf76940f502fddd0")
-        .populate('seller', 'first_name last_name')
-        .populate({
-            path: 'category',
-            select: '_id name description parent_id',
-            populate: {
-                path: 'parent',
-                select: '_id name description'
-            }
-        }).exec(function (err, product) {
-            if (err) {
-                return next({
-                    'msg': 'Error reading product information',
-                    'err': err
-                });
-            }
-            if (product) {
-                events.emit(config.eventNameForNewProduct, {
-                    '_id': product._id,
-                    'name': product.name,
-                    'seller': product.seller,
-                    'category': product.category,
-                    'socket_id': req.cookies.io
-                });
-                res.send(product)
-            } else {
-                console.warn('Product not found');
-                respObj.success = false;
-                respObj.response.msg = "Product not found";
-                res.status(404).send(respObj);
-            }
-        });
-};
+// exports.broadcast = function (req, res, next) {
+//     Products.findById("5912bbf3bf76940f502fddd0")
+//         .populate('seller', 'first_name last_name')
+//         .populate({
+//             path: 'category',
+//             select: '_id name description parent_id',
+//             populate: {
+//                 path: 'parent',
+//                 select: '_id name description'
+//             }
+//         }).exec(function (err, product) {
+//             if (err) {
+//                 return next({
+//                     'msg': 'Error reading product information',
+//                     'err': err
+//                 });
+//             }
+//             if (product) {
+//                 events.emit(config.eventNameForNewProduct, {
+//                     '_id': product._id,
+//                     'name': product.name,
+//                     'seller': product.seller,
+//                     'category': product.category,
+//                     'socket_id': req.cookies.io
+//                 });
+//                 res.send(product)
+//             } else {
+//                 respObj.success = false;
+//                 respObj.response.msg = "Product not found";
+//                 res.status(404).send(respObj);
+//             }
+//         });
+// };
