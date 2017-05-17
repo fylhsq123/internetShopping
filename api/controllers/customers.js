@@ -265,11 +265,11 @@ exports.authenticate_customer = function (req, res, next) {
 					'err': err
 				});
 			}
-
 			if (!customer) {
 				respObj.success = false;
 				respObj.response.msg = "Authentication failed. Customer not found";
-				res.status(403).send(respObj);
+				respObj.statusCode = 403;
+				res.status(respObj.statusCode).send(respObj);
 			} else {
 				// check if password matches
 				customer.comparePassword(req.body.password, function (err, isMatch) {
@@ -286,7 +286,8 @@ exports.authenticate_customer = function (req, res, next) {
 					} else {
 						respObj.success = false;
 						respObj.response.msg = "Authentication failed. Wrong password";
-						res.status(403).send(respObj);
+						respObj.statusCode = 403;
+						res.status(respObj.statusCode).send(respObj);
 					}
 				});
 			}
