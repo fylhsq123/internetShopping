@@ -53,7 +53,7 @@ module.exports = {
 			"phone_number": "0639347288",
 			"last_name": "TestSurname3",
 			"first_name": "TestName3",
-			"dwh_deleted": true,
+			"dwh_deleted": false,
 			"country": mongoose.Types.ObjectId("59104585c976ad5a5c0a7cd8"),
 			"role_id": mongoose.Types.ObjectId("58fdf368746c70e8a1759a55")
 		}
@@ -83,6 +83,10 @@ module.exports = {
 	}],
 	'testFile': {
 		'name': 'test1.txt',
+		'content': 'Hello'
+	},
+	'testImageFile': {
+		'name': 'test1.png',
 		'content': 'Hello'
 	},
 	'categories': [{
