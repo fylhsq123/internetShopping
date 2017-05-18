@@ -11,7 +11,6 @@ var
 	// load global event emitter
 	events = require('./common/global-event-emitter'),
 	// get config file
-	//config = require('./api/config/conf'),
 	config = require('config'),
 	// initialization
 	app = express(),
@@ -85,9 +84,9 @@ events.on(config.eventNameForNewProduct, function (data) {
 		io.to('new_products').emit(config.eventNameForNewProduct, data);
 	}
 });
-app.route('/').get(function (req, res) {
-	res.sendFile(__dirname + '/index.html');
-});
+// app.route('/').get(function (req, res) {
+// 	res.sendFile(__dirname + '/index.html');
+// });
 
 // Error handlers
 function logErrors(err, req, res, next) {
@@ -117,7 +116,7 @@ app.use(function (req, res) {
 
 // start server
 http.listen(config.server.port, config.server.address, function () {
-	console.log('RESTful API server started on: ' + (config.server.address + ':' + config.server.port));
+	console.log('RESTful API server started on: ' + (config.server.host()));
 });
 
 // for Mocha tests
