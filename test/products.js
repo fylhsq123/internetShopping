@@ -16,11 +16,13 @@ var Customers = require('../api/models/customers'),
     Promise = require('bluebird'),
 
     server = require('../server'),
-    config = require('config');
+    config = require('config'),
+    io = require('socket.io-client'),
+    events = require('../common/global-event-emitter');
 
 chai.use(chaiHttp).use(chaiFiles).should();
 
-describe('Products', () => {
+describe('PRODUCTS', () => {
     var customersArr = [config.customers.admin, config.customers.seller, config.customers.buyer];
 
     before('Load data into related tables', () => {
@@ -287,6 +289,19 @@ describe('Products', () => {
                         file(config.upload_dir + res.body.image).should.exist;
                         done();
                     });
+            });
+            it.skip('should broadcast message when new product was created', (done) => {
+                var client = io.connect('192.168.2.65:3007');
+                client.on('news', (data) => {
+                    console.log(data);
+                    done();
+                });
+                events.emit(config.eventNameForNewProduct, {
+                    '_id': 'product._id',
+                    'name': 'product.name',
+                    'seller': 'product.seller',
+                    'category': 'product.category'
+                });
             });
             it('should ignore other files except images', (done) => {
                 chai.request(server).post('/product').set("Authorization", authorizationSeller)
