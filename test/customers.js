@@ -36,7 +36,7 @@ chai.should();
 mongoose.Promise = global.Promise;
 chai.use(chaiHttp).use(chaiAsPromised);
 
-describe('Customers', () => {
+describe('CUSTOMERS', () => {
     var authorizationAdmin, authorizationSeller,
         customersArr = [config.customers.admin, config.customers.seller, config.customers.buyer];
     before('Load data into related tables', () => {

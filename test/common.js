@@ -9,7 +9,7 @@ var chai = require('chai'),
     config = require('config');
 
 chai.use(chaiHttp).should();
-describe('Common functionality', () => {
+describe('COMMON FUNCTIONALITY', () => {
     describe('Wrong path handling', () => {
         it('should handle wrong path', (done) => {
             chai.request(server).get('/some/wrong/path').end((err, res) => {

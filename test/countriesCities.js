@@ -12,7 +12,7 @@ var CountriesCities = require('../api/models/countriesCities.js'),
 
 chai.use(chaiHttp);
 
-describe('CountriesCities', () => {
+describe('COUNTRIES and CITIES', () => {
     beforeEach(() => {
         return CountriesCities.remove({}).then(() => {
             return CountriesCities.insertMany(config.countries);
