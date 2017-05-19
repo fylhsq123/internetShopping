@@ -33,22 +33,63 @@ function _isObjectEmpty(obj) {
  */
 exports.list_all_products = function (req, res, next) {
     var searchCondition = {
-            'dwh_deleted': false
+            $and: [{
+                'dwh_deleted': false
+            }]
         },
-        orderCondition = {};
-    if (!_isObjectEmpty(req.params)) {
-        var params = req.params;
-        if (params.sellerId) {
-            searchCondition.seller_id = params.sellerId;
+        orderCondition = {},
+        params = req.params;
+    // check if productID was specified
+    if (params.productId) {
+        searchCondition._id = params.productId;
+    }
+    // check if there are any query parameters specified within the URL
+    if (!_isObjectEmpty(req.query)) {
+        var query = req.query;
+        // Check if Seller was specified for filtering by seller
+        if (query.seller) {
+            searchCondition.$and.push({
+                seller_id: query.seller
+            });
         }
-        if (params.subcategoryId) {
-            searchCondition.subcategory_id = params.subcategoryId;
+        // Check if Subcategory was specified for filtering by subcategory
+        if (query.subcategory) {
+            searchCondition.$and.push({
+                subcategory_id: query.subcategory
+            });
         }
-        if (params.productId) {
-            searchCondition._id = params.productId;
+        // Check if there is some sort condition
+        if (query.sort) {
+            orderCondition[query.sort] = query.order === 'desc' ? -1 : 1;
         }
-        if (params.sortBy && params.sortOrder) {
-            orderCondition[params.sortBy] = params.sortOrder === 'desc' ? -1 : 1;
+        // Check if last element of the list was specified. It is used to load next portion of data starting from last element.
+        // Two parameters (_id and field that was used is sorting) are used here to define the element from which next portion of data should be loaded.
+        if (query.lastid) {
+            // 'lastval' contains value of last element from the field that was used in sorting. If there is any, it should be taken into account.
+            if (query.lastval && query.sort) {
+                searchCondition.$and.push({
+                    $or: [{
+                        [query.sort]: {
+                            [query.order === 'desc' ? '$lt' : '$gt']: query.lastval
+                        }
+                    }, {
+                        $and: [{
+                            [query.sort]: query.lastval
+                        }, {
+                            _id: {
+                                $gt: query.lastid
+                            }
+                        }]
+                    }]
+                });
+            } else {
+                // if 'lastval' was not specified or for some reason sort column is missing, data will be loaded starting from element with just specified ID.
+                searchCondition.$and.push({
+                    "_id": {
+                        [query.order === 'desc' ? '$lt' : '$gt']: query.lastid
+                    }
+                });
+            }
         }
     }
     Products.find(searchCondition)
@@ -61,7 +102,9 @@ exports.list_all_products = function (req, res, next) {
                 select: '_id name description'
             }
         })
+        .limit(parseInt(req.query.limit, 10) || 0)
         .sort(orderCondition)
+        .sort('_id')
         .select('_id name description image subcategory_id seller_id is_available price_sold count_bought count_sold')
         .exec(function (err, products) {
             if (err) {
