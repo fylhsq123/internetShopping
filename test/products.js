@@ -59,9 +59,81 @@ describe('PRODUCTS', () => {
                 });
             });
         });
+        describe('partial loading', () => {
+            it('should be possible to load part of data', (done) => {
+                var itemsNum = 3;
+                chai.request(server).get('/products').query({
+                    'limit': itemsNum
+                }).end((err, res) => {
+                    if (err) return done(err);
+                    res.should.have.status(200);
+                    res.body.should.be.a('array');
+                    res.body.should.have.length(itemsNum);
+                    done();
+                });
+            });
+            it('should be possible to load part of data after specified element', (done) => {
+                var itemsNum = 3;
+                chai.request(server).get('/products').query({
+                    'lastid': config.products[2]._id.toString(),
+                    'limit': itemsNum
+                }).end((err, res) => {
+                    if (err) return done(err);
+                    res.should.have.status(200);
+                    res.body.should.be.an('array');
+                    var expectedArray = config.products.filter((elem) => {
+                        return elem._id > config.products[2]._id;
+                    }).sort((a, b) => {
+                        return parseInt(a._id, 16) - parseInt(b._id, 16);
+                    });
+                    res.body.should.have.length(expectedArray.length);
+                    res.body.should.satisfy((val) => {
+                        for (let i = 0; i < val.length; i++) {
+                            if (val[i].name !== expectedArray[i].name) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                    done();
+                });
+            });
+            it('should be possible to load part of data after specified element in sort order', (done) => {
+                var itemsNum = 3,
+                    testProduct = config.products[1];
+                chai.request(server).get('/products').query({
+                    'lastid': testProduct._id.toString(),
+                    'lastval': testProduct.name,
+                    'sort': 'name',
+                    'order': 'desc',
+                    'limit': itemsNum
+                }).end((err, res) => {
+                    if (err) return done(err);
+                    res.should.have.status(200);
+                    res.body.should.be.an('array');
+                    var expectedArray = config.products.filter((elem) => {
+                        return elem.name < testProduct.name || (elem.name === testProduct.name && elem._id < testProduct._id);
+                    }).sort((a, b) => {
+                        return a.name < b.name;
+                    });
+                    res.body.should.have.length(expectedArray.length);
+                    res.body.should.satisfy((val) => {
+                        for (let i = 0; i < val.length; i++) {
+                            if (val[i].name !== expectedArray[i].name) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    });
+                    done();
+                });
+            });
+        });
         describe('products by seller', () => {
             it('should be possible to list all products that belong to specified seller', (done) => {
-                chai.request(server).get('/products/byseller/' + config.customers.seller._id).end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'seller': config.customers.seller._id.toString()
+                }).end((err, res) => {
                     if (err) return done(err);
                     res.should.have.status(200);
                     var productsLen = config.products.filter((elem) => {
@@ -72,7 +144,11 @@ describe('PRODUCTS', () => {
                 });
             });
             it('should be possible to list all products that belong to specified seller in descending order by name', (done) => {
-                chai.request(server).get('/products/byseller/' + config.customers.seller._id + '/name/desc').end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'seller': config.customers.seller._id.toString(),
+                    'sort': 'name',
+                    'order': 'desc'
+                }).end((err, res) => {
                     if (err) return done(err);
                     res.should.have.status(200);
                     var productsSorted = config.products.filter((elem) => {
@@ -93,13 +169,17 @@ describe('PRODUCTS', () => {
                 });
             });
             it('should throw an error if specified seller ID does not exist', (done) => {
-                chai.request(server).get('/products/byseller/58f60aef2878a22f6824f099').end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'seller': '58f60aef2878a22f6824f099'
+                }).end((err, res) => {
                     res.should.have.status(404);
                     done();
                 });
             });
             it('should throw an error if specified seller ID is not valid', (done) => {
-                chai.request(server).get('/products/byseller/58f60aef2878a22f6824f09g').end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'seller': '58f60aef2878a22f6824f09g'
+                }).end((err, res) => {
                     res.should.have.status(500);
                     done();
                 });
@@ -107,7 +187,9 @@ describe('PRODUCTS', () => {
         });
         describe('products by category', () => {
             it('should be possible to list all products that belong to specified category', (done) => {
-                chai.request(server).get('/products/bysubcategory/' + config.categories[1]._id).end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'subcategory': config.categories[1]._id.toString()
+                }).end((err, res) => {
                     if (err) return done(err);
                     res.should.have.status(200);
                     var productsLen = config.products.filter((elem) => {
@@ -118,7 +200,11 @@ describe('PRODUCTS', () => {
                 });
             });
             it('should be possible to list all products that belong to specified category in ascending order by name', (done) => {
-                chai.request(server).get('/products/bysubcategory/' + config.categories[1]._id + '/name/asc').end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'subcategory': config.categories[1]._id.toString(),
+                    'sort': 'name',
+                    'order': 'asc'
+                }).end((err, res) => {
                     if (err) return done(err);
                     res.should.have.status(200);
                     var productsSorted = config.products.filter((elem) => {
@@ -139,13 +225,17 @@ describe('PRODUCTS', () => {
                 });
             });
             it('should throw an error if specified category ID does not exist', (done) => {
-                chai.request(server).get('/products/bysubcategory/58fdb56d93c22717c88234bf').end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'subcategory': '58fdb56d93c22717c88234bf'
+                }).end((err, res) => {
                     res.should.have.status(404);
                     done();
                 });
             });
             it('should throw an error if specified category ID is not valid', (done) => {
-                chai.request(server).get('/products/bysubcategory/58fdb56d93c22716c88234bg').end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'subcategory': '58fdb56d93c22716c88234bg'
+                }).end((err, res) => {
                     res.should.have.status(500);
                     done();
                 });
@@ -153,7 +243,10 @@ describe('PRODUCTS', () => {
         });
         describe('products by seller and category', () => {
             it('should be possible to list all products that belong to specified seller and category', (done) => {
-                chai.request(server).get('/products/bysellerandsubcategory/' + config.customers.seller._id + '/' + config.categories[1]._id).end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'subcategory': config.categories[1]._id.toString(),
+                    'seller': config.customers.seller._id.toString()
+                }).end((err, res) => {
                     if (err) return done(err);
                     res.should.have.status(200);
                     var productsLen = config.products.filter((elem) => {
@@ -164,7 +257,12 @@ describe('PRODUCTS', () => {
                 });
             });
             it('should be possible to list all products that belong to specified seller and category in descending order by name', (done) => {
-                chai.request(server).get('/products/bysellerandsubcategory/' + config.customers.seller._id + '/' + config.categories[1]._id + '/name/desc').end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'subcategory': config.categories[1]._id.toString(),
+                    'seller': config.customers.seller._id.toString(),
+                    'sort': 'name',
+                    'order': 'desc'
+                }).end((err, res) => {
                     if (err) return done(err);
                     res.should.have.status(200);
                     var productsSorted = config.products.filter((elem) => {
@@ -185,13 +283,19 @@ describe('PRODUCTS', () => {
                 });
             });
             it('should throw an error if specified seller and category ID does not exist', (done) => {
-                chai.request(server).get('/products/bysellerandsubcategory/58f60aef2878a22f6824f099/58fdb56d93c22717c88234bf').end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'subcategory': '58fdb56d93c22717c88234bf',
+                    'seller': '58f60aef2878a22f6824f099'
+                }).end((err, res) => {
                     res.should.have.status(404);
                     done();
                 });
             });
             it('should throw an error if specified seller and category ID is not valid', (done) => {
-                chai.request(server).get('/products/bysellerandsubcategory/58f60aef2878a22f6824f09g/58fdb56d93c22716c88234bg').end((err, res) => {
+                chai.request(server).get('/products').query({
+                    'subcategory': 'WrongSubcategoryID',
+                    'seller': 'WrongSellerID'
+                }).end((err, res) => {
                     res.should.have.status(500);
                     done();
                 });
@@ -297,10 +401,10 @@ describe('PRODUCTS', () => {
                     done();
                 });
                 events.emit(config.eventNameForNewProduct, {
-                    '_id': 'product._id',
-                    'name': 'product.name',
-                    'seller': 'product.seller',
-                    'category': 'product.category'
+                    '_id': config.products[0]._id,
+                    'name': config.products[0].name,
+                    'seller': config.products[0].seller,
+                    'category': config.products[0].category
                 });
             });
             it('should ignore other files except images', (done) => {
@@ -461,6 +565,21 @@ describe('PRODUCTS', () => {
                     .attach('image', fs.readFileSync(config.upload_dir + config.testImageFile.name), config.testImageFile.name)
                     .end((err, res) => {
                         res.should.have.status(401);
+                        done();
+                    });
+            });
+            it('should throw an error if product was not found', (done) => {
+                chai.request(server).put('/product/59009df29cf77d3a40479fdb').set("Authorization", authorizationSeller)
+                    .field("name", testValidProduct.name)
+                    .field("description", testValidProduct.description)
+                    .field("count_bought", testValidProduct.count_bought)
+                    .field("count_sold", testValidProduct.count_sold)
+                    .field("price_bought", testValidProduct.price_bought)
+                    .field("price_sold", testValidProduct.price_sold)
+                    .field("subcategory_id", testValidProduct.subcategory_id)
+                    .attach('image', fs.readFileSync(config.upload_dir + config.testImageFile.name), config.testImageFile.name)
+                    .end((err, res) => {
+                        res.should.have.status(404);
                         done();
                     });
             });
