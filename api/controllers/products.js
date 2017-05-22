@@ -113,14 +113,7 @@ exports.list_all_products = function (req, res, next) {
                     'err': err
                 });
             }
-            if (products.length === 0) {
-                respObj.success = false;
-                respObj.response.msg = 'Products were not found';
-                respObj.statusCode = 404;
-                res.status(respObj.statusCode).send(respObj);
-            } else {
-                res.send(products);
-            }
+            res.send(products);
         });
 };
 

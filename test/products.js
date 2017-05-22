@@ -168,11 +168,12 @@ describe('PRODUCTS', () => {
                     done();
                 });
             });
-            it('should throw an error if specified seller ID does not exist', (done) => {
+            it('should send an empty array if specified seller ID does not exist', (done) => {
                 chai.request(server).get('/products').query({
                     'seller': '58f60aef2878a22f6824f099'
                 }).end((err, res) => {
-                    res.should.have.status(404);
+                    res.should.have.status(200);
+                    res.body.should.be.empty;
                     done();
                 });
             });
@@ -224,11 +225,12 @@ describe('PRODUCTS', () => {
                     done();
                 });
             });
-            it('should throw an error if specified category ID does not exist', (done) => {
+            it('should send an empty array if specified category ID does not exist', (done) => {
                 chai.request(server).get('/products').query({
                     'subcategory': '58fdb56d93c22717c88234bf'
                 }).end((err, res) => {
-                    res.should.have.status(404);
+                    res.should.have.status(200);
+                    res.body.should.be.empty;
                     done();
                 });
             });
@@ -282,12 +284,13 @@ describe('PRODUCTS', () => {
                     done();
                 });
             });
-            it('should throw an error if specified seller and category ID does not exist', (done) => {
+            it('should send an empty array if specified seller and category ID does not exist', (done) => {
                 chai.request(server).get('/products').query({
                     'subcategory': '58fdb56d93c22717c88234bf',
                     'seller': '58f60aef2878a22f6824f099'
                 }).end((err, res) => {
-                    res.should.have.status(404);
+                    res.should.have.status(200);
+                    res.body.should.be.empty;
                     done();
                 });
             });
@@ -313,9 +316,10 @@ describe('PRODUCTS', () => {
                     done();
                 });
             });
-            it('should throw an error if specified product ID does not exist', (done) => {
+            it('should send an empty array if specified product ID does not exist', (done) => {
                 chai.request(server).get('/products/58ff577e8cceae2904475c6b').end((err, res) => {
-                    res.should.have.status(404);
+                    res.should.have.status(200);
+                    res.body.should.be.empty;
                     done();
                 });
             });
