@@ -294,6 +294,33 @@ exports.authenticate_customer = function (req, res, next) {
 		});
 };
 
+exports.change_password = function (req, res, next) {
+	if (req.body.password) {
+		Customers.findOne({
+			'_id': req.user._id,
+			'dwh_deleted': false
+		}).exec().then((customer) => {
+			customer.password = req.body.password;
+			return customer.save();
+		}).then(() => {
+			respObj.success = true;
+			respObj.response.msg = "Password was changed successfully";
+			respObj.statusCode = 200;
+			res.status(respObj.statusCode).send(respObj);
+		}).catch((err) => {
+			next({
+				'msg': 'Error occured',
+				'err': err
+			})
+		});
+	} else {
+		respObj.success = false;
+		respObj.response.msg = "Password was not specified";
+		respObj.statusCode = 400;
+		res.status(respObj.statusCode).send(respObj);
+	}
+};
+
 /**
  * Method is used to logout customer
  * @param  {Object} req Object containing information about the HTTP request

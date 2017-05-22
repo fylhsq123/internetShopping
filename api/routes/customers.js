@@ -18,6 +18,8 @@ module.exports = function (app, passport) {
 		.post(customers.authenticate_customer);
 	// app.route('/logout')
 	// 	.get(passport.authenticate('jwt', config.jwtSession), customers.logout_customer);
+	app.route('/changepassword')
+		.post(passport.authenticate('jwt', config.jwtSession), customers.change_password);
 
 	/**
 	 * Get / update / delete information about customer

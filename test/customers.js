@@ -98,6 +98,23 @@ describe('CUSTOMERS', () => {
                 });
             });
         });
+        it('should be possible to change password', (done) => {
+            chai.request(server).post('/changepassword').set("Authorization", authorizationAdmin).send({
+                'password': 'NewPassword'
+            }).end((err, res) => {
+                if (err) return done(err);
+                res.should.have.status(200);
+                done();
+            });
+        });
+        it('should throw an error if password was not specified', (done) => {
+            chai.request(server).post('/changepassword').set("Authorization", authorizationAdmin).send({
+                'password': ''
+            }).end((err, res) => {
+                res.should.have.status(400);
+                done();
+            });
+        });
     });
 
     describe('Customer authorization', () => {
