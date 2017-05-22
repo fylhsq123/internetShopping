@@ -20,12 +20,14 @@ var
 	categoriesModel = require('./api/models/categories'),
 	rolesModel = require('./api/models/roles'),
 	productsModel = require('./api/models/products'),
+	ordersModel = require('./api/models/orders'),
 	// get routes
 	customersRoutes = require('./api/routes/customers'),
 	countriesCitiesRoutes = require('./api/routes/countriesCities'),
 	categoriesRoutes = require('./api/routes/categories'),
 	productsRoutes = require('./api/routes/products'),
 	commonRoutes = require('./api/routes/common'),
+	ordersRoutes = require('./api/routes/orders'),
 
 	http = require('http').Server(app),
 	io = require('socket.io')(http);
@@ -72,6 +74,9 @@ productsRoutes(app, passport);
 
 // Common Routes
 commonRoutes(app);
+
+// Orders Routes
+ordersRoutes(app, passport);
 
 // Event listener on creating new product
 io.on('connection', function (socket) {
