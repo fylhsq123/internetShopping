@@ -5,10 +5,7 @@ var cryptiles = require('cryptiles'),
 module.exports = {
 	'server': {
 		'address': '192.168.2.65',
-		'port': '3005',
-		'host': function () {
-			return this.address + ':' + this.port;
-		}
+		'port': '3005'
 	},
 	'upload_dir': './uploads/test/',
 	'database': 'mongodb://localhost:27017/internetShopping_test',
