@@ -95,7 +95,7 @@ events.on(config.eventNameForNewProduct, function (data) {
 
 // Error handlers
 function logErrors(err, req, res, next) {
-	console.error('\x1b[31m\x1b[1m%s\x1b[0m', "[ERROR]: ", err.err.message ? err.err.message : err.err);
+	console.error('\x1b[31m\x1b[1m%s\x1b[0m', "[ERROR]: ", err.err ? err.err.message ? err.err.message : err.err : err);
 	next(err);
 }
 
@@ -104,7 +104,7 @@ function clientErrorHandler(err, req, res, next) {
 		.send({
 			"success": false,
 			"response": {
-				"msg": err.msg
+				"msg": err.msg || err.message
 			}
 		});
 }
