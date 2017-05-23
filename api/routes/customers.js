@@ -12,6 +12,14 @@ module.exports = function (app, passport) {
 		.post(customers.create_customer);
 
 	/**
+	 * Get / update / delete information about customer
+	 */
+	app.route(['/customer', '/customer/:customerId'])
+		.get(passport.authenticate('jwt', config.jwtSession), customers.read_customer_info)
+		.put(passport.authenticate('jwt', config.jwtSession), customers.update_customer)
+		.delete(passport.authenticate('jwt', config.jwtSession), customers.delete_customer);
+
+	/**
 	 * Customer authentication methods
 	 */
 	app.route('/authenticate')
@@ -20,12 +28,4 @@ module.exports = function (app, passport) {
 	// 	.get(passport.authenticate('jwt', config.jwtSession), customers.logout_customer);
 	app.route('/changepassword')
 		.post(passport.authenticate('jwt', config.jwtSession), customers.change_password);
-
-	/**
-	 * Get / update / delete information about customer
-	 */
-	app.route(['/customer', '/customer/:customerId'])
-		.get(passport.authenticate('jwt', config.jwtSession), customers.read_customer_info)
-		.put(passport.authenticate('jwt', config.jwtSession), customers.update_customer)
-		.delete(passport.authenticate('jwt', config.jwtSession), customers.delete_customer);
 };

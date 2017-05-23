@@ -275,6 +275,11 @@ exports.authenticate_customer = function (req, res, next) {
 				customer.comparePassword(req.body.password, function (err, isMatch) {
 					if (isMatch && !err) {
 						// if customer is found and password is right create a token
+						var dataToEncode = customer.toObject();
+						delete dataToEncode.password;
+						delete dataToEncode.address;
+						delete dataToEncode.city;
+						delete dataToEncode.zip_code;
 						var token = jwt.encode(customer, config.jwtSecret);
 						// return the information including token as JSON
 						var customerInfo = Object.assign({}, {

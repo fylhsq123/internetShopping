@@ -12,7 +12,11 @@ module.exports = function (passport, Customers) {
 	passport.use(new JwtStrategy(opts, function (jwt_payload, done) {
 		Customers.findOne({
 			email: jwt_payload.email
-		}, function (err, customer) {
+		}).populate({
+			path: 'role_id',
+			select: '-_id type'
+		}).exec(function (err, customer) {
+			console.log(customer);
 			if (err) {
 				return done(err, false);
 			}
