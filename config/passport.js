@@ -10,21 +10,26 @@ module.exports = function (passport, Customers) {
 	opts.jwtFromRequest = ExtractJwt.fromAuthHeader();
 	opts.secretOrKey = config.jwtSecret;
 	passport.use(new JwtStrategy(opts, function (jwt_payload, done) {
-		Customers.findOne({
-			email: jwt_payload.email
-		}).populate({
-			path: 'role_id',
-			select: '-_id type'
-		}).exec(function (err, customer) {
-			console.log(customer);
-			if (err) {
-				return done(err, false);
-			}
-			if (customer) {
-				done(null, customer);
-			} else {
-				done(null, false);
-			}
-		});
+		var currDate = new Date(),
+			validTo = new Date(jwt_payload.validTo);
+		if (currDate <= validTo) {
+			Customers.findOne({
+				email: jwt_payload.email
+			}).populate({
+				path: 'role_id',
+				select: '-_id type'
+			}).exec(function (err, customer) {
+				if (err) {
+					return done(err, false);
+				}
+				if (customer) {
+					done(null, customer);
+				} else {
+					done(null, false);
+				}
+			});
+		} else {
+			done(null, false);
+		}
 	}));
 };

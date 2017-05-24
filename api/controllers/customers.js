@@ -250,14 +250,6 @@ exports.authenticate_customer = function (req, res, next) {
 			'dwh_deleted': false
 		})
 		.select(config.technicalFields)
-		.populate({
-			path: 'country',
-			select: 'country'
-		})
-		.populate({
-			path: 'role_id',
-			select: '-_id name type'
-		})
 		.exec(function (err, customer) {
 			if (err) {
 				next({
@@ -280,7 +272,13 @@ exports.authenticate_customer = function (req, res, next) {
 						delete dataToEncode.address;
 						delete dataToEncode.city;
 						delete dataToEncode.zip_code;
-						var token = jwt.encode(customer, config.jwtSecret);
+						delete dataToEncode.role_id;
+
+						var date = new Date();
+						// add a day
+						date.setDate(date.getDate() + 1);
+						dataToEncode.validTo = date;
+						var token = jwt.encode(dataToEncode, config.jwtSecret);
 						// return the information including token as JSON
 						var customerInfo = Object.assign({}, {
 							success: true,
