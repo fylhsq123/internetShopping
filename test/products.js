@@ -1,5 +1,4 @@
 'use strict';
-process.env.NODE_ENV = 'test';
 
 var Customers = require('../api/models/customers'),
     CountriesCities = require('../api/models/countriesCities'),

@@ -1,5 +1,5 @@
 'use strict';
-process.env.NODE_ENV = 'test';
+
 var CountriesCities = require('../api/models/countriesCities.js'),
 
     chai = require('chai'),

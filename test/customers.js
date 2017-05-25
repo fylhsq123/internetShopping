@@ -1,5 +1,4 @@
 'use strict';
-process.env.NODE_ENV = 'test';
 
 var mongoose = require('mongoose'),
     Customers = require('../api/models/customers'),
