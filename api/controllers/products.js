@@ -4,7 +4,6 @@ var mongoose = require('mongoose'),
     formidable = require('formidable'),
     cryptiles = require('cryptiles'),
     Products = mongoose.model('Products'),
-    Roles = mongoose.model('Roles'),
     config = require('config'),
     events = require('../../common/global-event-emitter'),
     path = require('path'),
@@ -124,94 +123,92 @@ exports.list_all_products = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.create_new_product = function (req, res, next) {
-    Roles.findById(req.user.role_id).exec().then((role) => {
-        if (role && ['admin', 'seller'].indexOf(role.type) >= 0) {
-            return new Promise((resolve, reject) => {
-                var form = new formidable.IncomingForm();
-                form.parse(req, function (err, fields, files) {
-                    if (err) {
-                        reject(err);
-                    }
-                    resolve({
-                        fields,
-                        files
-                    });
+    if (['admin', 'seller'].indexOf(req.user.role_id.type) >= 0) {
+        (new Promise((resolve, reject) => {
+            var form = new formidable.IncomingForm();
+            form.parse(req, function (err, fields, files) {
+                if (err) {
+                    reject(err);
+                }
+                resolve({
+                    fields,
+                    files
                 });
             });
-        } else {
-            respObj.success = false;
-            respObj.response.msg = 'You are not authorized to perform this action';
-            respObj.statusCode = 403;
-            throw respObj;
-        }
-    }).then((obj) => {
-        var ext, newFileName, targetPath,
-            files = obj.files,
-            fields = obj.fields;
-        if (!_isObjectEmpty(files) && files.image && /^image\//.test(files.image.type)) {
-            try {
-                ext = path.extname(files.image.name);
-                newFileName = cryptiles.randomString(8) + new Date().getTime();
-                targetPath = path.resolve(config.upload_dir + newFileName + ext);
-                fs.renameSync(files.image.path, targetPath);
-            } catch (err) {
-                throw err;
-            }
-        }
-        Object.assign(fields, {
-            image: newFileName ? newFileName + ext : ""
-        });
-        fields.seller_id = req.user._id;
-        var new_product = new Products(fields);
-        return new_product.save();
-    }).then((product) => {
-        return Products.findById(product._id)
-            .populate('seller', 'first_name last_name')
-            .populate({
-                path: 'category',
-                select: '_id name description parent_id',
-                populate: {
-                    path: 'parent',
-                    select: '_id name description'
+        })).then((obj) => {
+            var ext, newFileName, targetPath,
+                files = obj.files,
+                fields = obj.fields;
+            if (!_isObjectEmpty(files) && files.image && /^image\//.test(files.image.type)) {
+                try {
+                    ext = path.extname(files.image.name);
+                    newFileName = cryptiles.randomString(8) + new Date().getTime();
+                    targetPath = path.resolve(config.upload_dir + newFileName + ext);
+                    fs.renameSync(files.image.path, targetPath);
+                } catch (err) {
+                    throw err;
                 }
-            }).exec();
-    }).then((product) => {
-        if (product) {
-            var response = Object.assign({}, product.toObject(), {
-                'success': true
+            }
+            Object.assign(fields, {
+                image: newFileName ? newFileName + ext : ""
             });
-            delete response.dwh_deleted;
-            delete response.dwh_modified_date;
-            delete response.dwh_created_date;
-            events.emit(config.eventNameForNewProduct, {
-                '_id': product._id,
-                'name': product.name,
-                'seller': product.seller,
-                'category': product.category,
-                'socket_id': req.cookies.io
-            });
-            res.status(201).send(response);
-        } else {
-            respObj.success = false;
-            respObj.response.msg = "Product not found";
-            respObj.statusCode = 404;
-            throw respObj;
-        }
-    }).catch((err) => {
-        if (err.statusCode) {
-            res.status(err.statusCode).send(err);
-        } else if (err.name && err.name === "ValidationError") {
-            respObj.success = false;
-            respObj.response.msg = err.errors;
-            respObj.statusCode = 400;
-            res.status(respObj.statusCode).send(respObj);
-        } else {
-            next({
-                'msg': 'Error occured',
-                'err': err
-            });
-        }
-    });
+            fields.seller_id = req.user._id;
+            var new_product = new Products(fields);
+            return new_product.save();
+        }).then((product) => {
+            return Products.findById(product._id)
+                .populate('seller', 'first_name last_name')
+                .populate({
+                    path: 'category',
+                    select: '_id name description parent_id',
+                    populate: {
+                        path: 'parent',
+                        select: '_id name description'
+                    }
+                }).exec();
+        }).then((product) => {
+            if (product) {
+                var response = Object.assign({}, product.toObject(), {
+                    'success': true
+                });
+                delete response.dwh_deleted;
+                delete response.dwh_modified_date;
+                delete response.dwh_created_date;
+                events.emit(config.eventNameForNewProduct, {
+                    '_id': product._id,
+                    'name': product.name,
+                    'seller': product.seller,
+                    'category': product.category,
+                    'socket_id': req.cookies.io
+                });
+                res.status(201).send(response);
+            } else {
+                respObj.success = false;
+                respObj.response.msg = "Product not found";
+                respObj.statusCode = 404;
+                throw respObj;
+            }
+        }).catch((err) => {
+            if (err.statusCode) {
+                res.status(err.statusCode).send(err);
+            } else if (err.name && err.name === "ValidationError") {
+                respObj.success = false;
+                respObj.response.msg = err.errors;
+                respObj.statusCode = 400;
+                res.status(respObj.statusCode).send(respObj);
+            } else {
+                next({
+                    'msg': 'Error occured',
+                    'err': err
+                });
+            }
+        });
+    } else {
+        respObj.success = false;
+        respObj.response.msg = 'You are not authorized to perform this action';
+        respObj.statusCode = 403;
+        res.status(respObj.statusCode).send(respObj);
+    }
 };
 
 /**
@@ -221,49 +218,50 @@ exports.create_new_product = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.read_product_info = function (req, res, next) {
-    Roles.findById(req.user.role_id).then((role) => {
-        var fieldsToRemove = config.technicalFields;
-        if (role && ['admin', 'seller'].indexOf(role.type) >= 0) {
-            return Products.findById(req.params.productId)
-                .where({
-                    'dwh_deleted': false
-                })
-                .populate('seller', 'first_name last_name')
-                .populate({
-                    path: 'category',
-                    select: '_id name description parent_id',
-                    populate: {
-                        path: 'parent',
-                        select: '_id name description'
-                    }
-                })
-                .select(fieldsToRemove)
-                .exec();
-        } else {
-            respObj.success = false;
-            respObj.response.msg = 'You are not authorized to perform this action';
-            respObj.statusCode = 403;
-            throw respObj;
+    if (['admin', 'seller'].indexOf(req.user.role_id.type) >= 0) {
+        var additionalWhere = {
+            'dwh_deleted': false
+        };
+        if (req.user.role_id.type === 'seller') {
+            additionalWhere.seller_id = req.user._id;
         }
-    }).then((obj) => {
-        if (obj) {
-            res.send(obj);
-        } else {
-            respObj.success = false;
-            respObj.response.msg = "Product not found";
-            respObj.statusCode = 404;
-            throw respObj;
-        }
-    }).catch((err) => {
-        if (err.statusCode) {
-            res.status(err.statusCode).send(err);
-        } else {
-            next({
-                'msg': 'Error getting roles',
-                'err': err
+        Products.findById(req.params.productId)
+            .where(additionalWhere)
+            .populate('seller', 'first_name last_name')
+            .populate({
+                path: 'category',
+                select: '_id name description parent_id',
+                populate: {
+                    path: 'parent',
+                    select: '_id name description'
+                }
+            })
+            .select(config.technicalFields)
+            .exec().then((obj) => {
+                if (obj) {
+                    res.send(obj);
+                } else {
+                    respObj.success = false;
+                    respObj.response.msg = "Product not found";
+                    respObj.statusCode = 404;
+                    throw respObj;
+                }
+            }).catch((err) => {
+                if (err.statusCode) {
+                    res.status(err.statusCode).send(err);
+                } else {
+                    next({
+                        'msg': 'Error getting roles',
+                        'err': err
+                    });
+                }
             });
-        }
-    });
+    } else {
+        respObj.success = false;
+        respObj.response.msg = 'You are not authorized to perform this action';
+        respObj.statusCode = 403;
+        res.status(respObj.statusCode).send(respObj);
+    }
 };
 
 /**
@@ -273,85 +271,81 @@ exports.read_product_info = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.update_product_info = function (req, res, next) {
-    Roles.findById(req.user.role_id).exec().then((role) => {
-        if (role && ['admin', 'seller'].indexOf(role.type) >= 0) {
-            return new Promise((resolve, reject) => {
-                var form = new formidable.IncomingForm();
-                form.parse(req, (err, fields, files) => {
-                    if (err) return reject(err);
-                    resolve({
-                        fields,
-                        files,
-                        role
-                    });
+    if (['admin', 'seller'].indexOf(req.user.role_id.type) >= 0) {
+        (new Promise((resolve, reject) => {
+            var form = new formidable.IncomingForm();
+            form.parse(req, (err, fields, files) => {
+                if (err) return reject(err);
+                resolve({
+                    fields,
+                    files,
+                    role: req.user.role_id
                 });
             });
-        } else {
-            respObj.success = false;
-            respObj.response.msg = 'You are not authorized to perform this action';
-            respObj.statusCode = 403;
-            throw respObj;
-        }
-    }).then((obj) => {
-        var ext, newFileName, targetPath,
-            files = obj.files,
-            fields = obj.fields,
-            role = obj.role;
-        if (!_isObjectEmpty(files) && files.image && /^image\//.test(files.image.type)) {
-            try {
-                ext = path.extname(files.image.name);
-                newFileName = cryptiles.randomString(8) + new Date().getTime();
-                targetPath = path.resolve(config.upload_dir + newFileName + ext);
-                fs.renameSync(files.image.path, targetPath);
-            } catch (err) {
-                throw err;
+        })).then((obj) => {
+            var ext, newFileName, targetPath,
+                files = obj.files,
+                fields = obj.fields,
+                role = obj.role;
+            if (!_isObjectEmpty(files) && files.image && /^image\//.test(files.image.type)) {
+                try {
+                    ext = path.extname(files.image.name);
+                    newFileName = cryptiles.randomString(8) + new Date().getTime();
+                    targetPath = path.resolve(config.upload_dir + newFileName + ext);
+                    fs.renameSync(files.image.path, targetPath);
+                } catch (err) {
+                    throw err;
+                }
             }
-        }
-        if (newFileName) {
-            Object.assign(fields, {
-                image: newFileName + ext
+            if (newFileName) {
+                Object.assign(fields, {
+                    image: newFileName + ext
+                });
+            }
+            var updateConditions = {
+                '_id': req.params.productId,
+                'dwh_deleted': false
+            };
+            if (role.type === 'seller') {
+                Object.assign(updateConditions, {
+                    'seller_id': req.user._id
+                });
+            }
+            return Products.findOneAndUpdate(updateConditions, {
+                $set: fields
+            }, {
+                runValidators: true
             });
-        }
-        var updateConditions = {
-            '_id': req.params.productId,
-            'dwh_deleted': false
-        };
-        if (role.type === 'seller') {
-            Object.assign(updateConditions, {
-                'seller_id': req.user._id
-            });
-        }
-        return Products.findOneAndUpdate(updateConditions, {
-            $set: fields
-        }, {
-            runValidators: true
-        });
-    }).then((obj) => {
-        if (obj) {
-            respObj.success = true;
-            respObj.response.msg = "Product successfully updated";
-            respObj.statusCode = 200;
-        } else {
-            respObj.success = false;
-            respObj.response.msg = "Product not found";
-            respObj.statusCode = 404;
-        }
-        res.status(respObj.statusCode).send(respObj);
-    }).catch((err) => {
-        if (err.statusCode) {
-            res.status(err.statusCode).send(err);
-        } else if (err.name && err.name === "ValidationError") {
-            respObj.success = false;
-            respObj.response.msg = err.errors;
-            respObj.statusCode = 400;
+        }).then((obj) => {
+            if (obj) {
+                respObj.success = true;
+                respObj.response.msg = "Product successfully updated";
+                respObj.statusCode = 200;
+            } else {
+                respObj.success = false;
+                respObj.response.msg = "Product not found";
+                respObj.statusCode = 404;
+            }
             res.status(respObj.statusCode).send(respObj);
-        } else {
-            next({
-                'msg': 'Error occured',
-                'err': err
-            });
-        }
-    });
+        }).catch((err) => {
+            if (err.name && err.name === "ValidationError") {
+                respObj.success = false;
+                respObj.response.msg = err.errors;
+                respObj.statusCode = 400;
+                res.status(respObj.statusCode).send(respObj);
+            } else {
+                next({
+                    'msg': 'Error occured',
+                    'err': err
+                });
+            }
+        });
+    } else {
+        respObj.success = false;
+        respObj.response.msg = 'You are not authorized to perform this action';
+        respObj.statusCode = 403;
+        res.status(respObj.statusCode).send(respObj);
+    }
 };
 
 /**
@@ -361,82 +355,41 @@ exports.update_product_info = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.delete_product_info = function (req, res, next) {
-    Roles.findById(req.user.role_id).exec().then((role) => {
-        if (role && ['admin', 'seller'].indexOf(role.type) >= 0) {
-            var deleteConditions = {
-                '_id': req.params.productId,
-                'dwh_deleted': false
-            };
-            if (role.type === 'seller') {
-                Object.assign(deleteConditions, {
-                    'seller_id': req.user._id
-                });
-            }
-            return Products.findOneAndUpdate(deleteConditions, {
-                $set: {
-                    'dwh_deleted': true
-                }
+    if (['admin', 'seller'].indexOf(req.user.role_id.type) >= 0) {
+        var deleteConditions = {
+            '_id': req.params.productId,
+            'dwh_deleted': false
+        };
+        if (req.user.role_id.type === 'seller') {
+            Object.assign(deleteConditions, {
+                'seller_id': req.user._id
             });
-        } else {
-            respObj.success = false;
-            respObj.response.msg = 'You are not authorized to perform this action';
-            respObj.statusCode = 403;
-            throw respObj;
         }
-    }).then((obj) => {
-        if (obj) {
-            respObj.success = true;
-            respObj.response.msg = "Product successfully deleted";
-            respObj.statusCode = 200;
-        } else {
-            respObj.success = false;
-            respObj.response.msg = "Product not found";
-            respObj.statusCode = 404;
-        }
-        res.status(respObj.statusCode).send(respObj);
-    }).catch((err) => {
-        if (err.statusCode) {
-            res.status(err.statusCode).send(err);
-        } else {
+        Products.findOneAndUpdate(deleteConditions, {
+            $set: {
+                'dwh_deleted': true
+            }
+        }).then((obj) => {
+            if (obj) {
+                respObj.success = true;
+                respObj.response.msg = "Product successfully deleted";
+                respObj.statusCode = 200;
+            } else {
+                respObj.success = false;
+                respObj.response.msg = "Product not found";
+                respObj.statusCode = 404;
+            }
+            res.status(respObj.statusCode).send(respObj);
+        }).catch((err) => {
             next({
                 'msg': 'Error occured',
                 'err': err
             });
-        }
-    });
+        });
+    } else {
+        respObj.success = false;
+        respObj.response.msg = 'You are not authorized to perform this action';
+        respObj.statusCode = 403;
+        res.status(respObj.statusCode).send(respObj);
+    }
 };
-
-
-// exports.broadcast = function (req, res, next) {
-//     Products.findById("5912bbf3bf76940f502fddd0")
-//         .populate('seller', 'first_name last_name')
-//         .populate({
-//             path: 'category',
-//             select: '_id name description parent_id',
-//             populate: {
-//                 path: 'parent',
-//                 select: '_id name description'
-//             }
-//         }).exec(function (err, product) {
-//             if (err) {
-//                 return next({
-//                     'msg': 'Error reading product information',
-//                     'err': err
-//                 });
-//             }
-//             if (product) {
-//                 events.emit(config.eventNameForNewProduct, {
-//                     '_id': product._id,
-//                     'name': product.name,
-//                     'seller': product.seller,
-//                     'category': product.category,
-//                     'socket_id': req.cookies.io
-//                 });
-//                 res.send(product)
-//             } else {
-//                 respObj.success = false;
-//                 respObj.response.msg = "Product not found";
-//                 res.status(404).send(respObj);
-//             }
-//         });
-// };

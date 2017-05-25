@@ -2,7 +2,6 @@
 
 var mongoose = require('mongoose'),
 	Customers = mongoose.model('Customers'),
-	Roles = mongoose.model('Roles'),
 	jwt = require('jwt-simple'),
 	config = require('config'),
 	respObj = {
@@ -19,35 +18,29 @@ var mongoose = require('mongoose'),
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.list_all_customers = function (req, res, next) {
-	Roles.findById(req.user.role_id).exec().then((role) => {
-		if (role && role.type === 'admin') {
-			return Customers.find({}).select({
-				'password': 0
-			}).populate({
-				path: 'country',
-				select: 'country'
-			}).populate({
-				path: 'role_id',
-				select: '-_id name type'
-			}).exec();
-		} else {
-			respObj.success = false;
-			respObj.response.msg = 'You are not authorized to perform this action';
-			respObj.statusCode = 403;
-			throw respObj;
-		}
-	}).then((obj) => {
-		res.send(obj);
-	}).catch((err) => {
-		if (err.statusCode) {
-			res.status(err.statusCode).send(err);
-		} else {
+	if (req.user.role_id.type === 'admin') {
+		Customers.find({}).select({
+			'password': 0
+		}).populate({
+			path: 'country',
+			select: 'country'
+		}).populate({
+			path: 'role_id',
+			select: '-_id name type'
+		}).exec().then((obj) => {
+			res.send(obj);
+		}).catch((err) => {
 			next({
 				'msg': 'Error occured',
 				'err': err
 			});
-		}
-	});
+		});
+	} else {
+		respObj.success = false;
+		respObj.response.msg = 'You are not authorized to perform this action';
+		respObj.statusCode = 403;
+		res.status(respObj.statusCode).send(respObj);
+	}
 };
 
 /**
@@ -98,23 +91,21 @@ exports.create_customer = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.read_customer_info = function (req, res, next) {
-	Roles.findById(req.user.role_id).exec().then((role) => {
-		var userId = req.user._id;
-		if (role && role.type === 'admin') {
-			userId = req.params.customerId || userId;
-		}
-		return Customers.findById(userId).where({
-			'dwh_deleted': false
-		}).select(Object.assign({}, config.technicalFields, {
-			'password': 0
-		})).populate({
-			path: 'country',
-			select: 'country'
-		}).populate({
-			path: 'role_id',
-			select: '-_id name type'
-		}).exec();
-	}).then((obj) => {
+	var userId = req.user._id;
+	if (req.user.role_id.type === 'admin') {
+		userId = req.params.customerId || userId;
+	}
+	Customers.findById(userId).where({
+		'dwh_deleted': false
+	}).select(Object.assign({}, config.technicalFields, {
+		'password': 0
+	})).populate({
+		path: 'country',
+		select: 'country'
+	}).populate({
+		path: 'role_id',
+		select: '-_id name type'
+	}).exec().then((obj) => {
 		if (obj) {
 			res.send(obj);
 		} else {
@@ -138,32 +129,30 @@ exports.read_customer_info = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.update_customer = function (req, res, next) {
-	Roles.findById(req.user.role_id).exec().then((role) => {
-		var userId = req.user._id,
-			selectFields = Object.assign({}, config.technicalFields, {
-				'password': 0,
-				'role_id': 0
-			});
-		if (req.params.customerId && req.params.customerId !== req.user._id) {
-			if (role && role.type === 'admin') {
-				userId = req.params.customerId;
-				delete selectFields.role_id;
-			} else {
-				respObj.success = false;
-				respObj.response.msg = 'You are not authorized to perform this action';
-				respObj.statusCode = 403;
-				throw respObj;
-			}
-		}
-		return Customers.findOneAndUpdate({
-			'_id': userId,
-			'dwh_deleted': false
-		}, {
-			$set: req.body
-		}, {
-			fields: selectFields,
-			runValidators: true
+	var userId = req.user._id,
+		skipFields = Object.assign({}, config.technicalFields, {
+			'password': 0,
+			'role_id': 0
 		});
+	if (req.params.customerId && req.params.customerId !== req.user._id) {
+		if (req.user.role_id.type === 'admin') {
+			userId = req.params.customerId;
+			delete skipFields.role_id;
+		} else {
+			respObj.success = false;
+			respObj.response.msg = 'You are not authorized to perform this action';
+			respObj.statusCode = 403;
+			return res.status(respObj.statusCode).send(respObj);
+		}
+	}
+	Customers.findOneAndUpdate({
+		'_id': userId,
+		'dwh_deleted': false
+	}, {
+		$set: req.body
+	}, {
+		fields: skipFields,
+		runValidators: true
 	}).then((obj) => {
 		if (obj) {
 			respObj.success = true;
@@ -176,14 +165,10 @@ exports.update_customer = function (req, res, next) {
 		}
 		res.status(respObj.statusCode).send(respObj);
 	}).catch((err) => {
-		if (err.statusCode) {
-			res.status(err.statusCode).send(err);
-		} else {
-			next({
-				'msg': 'Error occured',
-				'err': err
-			});
-		}
+		next({
+			'msg': 'Error occured',
+			'err': err
+		});
 	});
 };
 
@@ -194,27 +179,24 @@ exports.update_customer = function (req, res, next) {
  * @param  {Function} next Function that passes control to the next matching route
  */
 exports.delete_customer = function (req, res, next) {
-	Roles.findById(req.user.role_id).exec().then((role) => {
-		var userId = req.user._id;
-
-		if (req.params.customerId && req.params.customerId !== req.user._id) {
-			if (role && role.type === 'admin') {
-				userId = req.params.customerId;
-			} else {
-				respObj.success = false;
-				respObj.response.msg = 'You are not authorized to perform this action';
-				respObj.statusCode = 403;
-				throw respObj;
-			}
+	var userId = req.user._id;
+	if (req.params.customerId && req.params.customerId !== req.user._id) {
+		if (req.user.role_id.type === 'admin') {
+			userId = req.params.customerId;
+		} else {
+			respObj.success = false;
+			respObj.response.msg = 'You are not authorized to perform this action';
+			respObj.statusCode = 403;
+			return res.status(respObj.statusCode).send(respObj);
 		}
-		return Customers.findOneAndUpdate({
-			'_id': userId,
-			'dwh_deleted': false
-		}, {
-			$set: {
-				'dwh_deleted': true
-			}
-		});
+	}
+	Customers.findOneAndUpdate({
+		'_id': userId,
+		'dwh_deleted': false
+	}, {
+		$set: {
+			'dwh_deleted': true
+		}
 	}).then((obj) => {
 		if (obj) {
 			respObj.success = true;
@@ -227,14 +209,10 @@ exports.delete_customer = function (req, res, next) {
 		}
 		res.status(respObj.statusCode).send(respObj);
 	}).catch((err) => {
-		if (err.statusCode) {
-			res.status(err.statusCode).send(err);
-		} else {
-			next({
-				'msg': 'Error occured',
-				'err': err
-			});
-		}
+		next({
+			'msg': 'Error occured',
+			'err': err
+		});
 	});
 };
 
@@ -330,30 +308,42 @@ exports.change_password = function (req, res, next) {
  * @param  {Object} res Object that is used to send back desired HTTP response
  * @param  {Function} next Function that passes control to the next matching route
  */
-/*exports.logout_customer = function (req, res, next) {
-	Customers.findOneAndUpdate({
-		'_id': req.user._id,
-		'dwh_deleted': false
-	}, {
-		$set: {
-			'dwh_online': false
-		}
-	}, function (err, customer) {
-		if (err) {
-			next({
-				'msg': 'Error logging out customer',
-				'err': err
-			});
-		} else {
-			if (customer) {
-				respObj.success = true;
-				respObj.response.msg = "Customer successfully logged out";
-				res.send(respObj);
-			} else {
-				respObj.success = false;
-				respObj.response.msg = "Customer not found";
-				res.status(404).send(respObj);
+exports.logout_customer = function (req, res, next) {
+	Customers.findOne({
+			'email': req.user.email
+		})
+		.select(config.technicalFields)
+		.exec(function (err, customer) {
+			if (err) {
+				next({
+					'msg': 'Error occured',
+					'err': err
+				});
 			}
-		}
-	});
-};*/
+			if (!customer) {
+				respObj.success = false;
+				respObj.response.msg = "Logout failed. Customer not found";
+				respObj.statusCode = 403;
+				res.status(respObj.statusCode).send(respObj);
+			} else {
+				// check if password matches
+				// if customer is found and password is right create a token
+				var dataToEncode = customer.toObject();
+				delete dataToEncode.password;
+				delete dataToEncode.address;
+				delete dataToEncode.city;
+				delete dataToEncode.zip_code;
+				delete dataToEncode.role_id;
+
+				var date = new Date();
+				// add a day
+				dataToEncode.validTo = date;
+				var token = jwt.encode(dataToEncode, config.jwtSecret);
+				// return the information including token as JSON
+				res.send({
+					success: true,
+					token: 'JWT ' + token
+				});
+			}
+		});
+};
