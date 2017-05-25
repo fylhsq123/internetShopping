@@ -24,6 +24,4 @@ module.exports = function (app, passport) {
         .get(passport.authenticate('jwt', config.jwtSession), products.read_product_info)
         .put(passport.authenticate('jwt', config.jwtSession), products.update_product_info)
         .delete(passport.authenticate('jwt', config.jwtSession), products.delete_product_info);
-
-    // app.route('/broadcast').get(products.broadcast);
 };
