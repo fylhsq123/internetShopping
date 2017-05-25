@@ -4,8 +4,11 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "mocha --timeout 10000",
-    "coverage": "istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec test/**/*",
+    "test-functional": "SET NODE_ENV=test&&mocha --timeout 10000 test/**/*.js",
+    "test-unit": "SET NODE_ENV=test&&mocha --timeout 10000 api/**/*.spec.js",
+    "test": "echo Running functional tests && npm run test-functional && echo Running unit tests && npm run test-unit",
+    "coverage-functional": "istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec test/**/*",
+    "coverage-unit": "istanbul cover ./node_modules/mocha/bin/_mocha -- api/**/*.spec.js",
     "start": "SET NODE_ENV=dev&&nodemon server.js"
   },
   "author": "Andrii Heptinh",
@@ -18,6 +21,7 @@
     "cookie-parser": "1.4.3",
     "cors": "2.8.3",
     "express": "4.15.2",
+    "express-session": "1.15.3",
     "formidable": "1.1.1",
     "jwt-simple": "0.5.1",
     "mongoose": "4.9.7",
@@ -33,6 +37,7 @@
     "chai-files": "1.4.0",
     "chai-http": "3.0.0",
     "mocha": "3.3.0",
+    "sinon": "2.3.1",
     "socket.io-client": "2.0.1"
   }
 }
