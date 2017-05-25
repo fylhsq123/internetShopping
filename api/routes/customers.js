@@ -24,8 +24,8 @@ module.exports = function (app, passport) {
 	 */
 	app.route('/authenticate')
 		.post(customers.authenticate_customer);
-	// app.route('/logout')
-	// 	.get(passport.authenticate('jwt', config.jwtSession), customers.logout_customer);
+	app.route('/logout')
+		.get(passport.authenticate('jwt', config.jwtSession), customers.logout_customer);
 	app.route('/changepassword')
 		.post(passport.authenticate('jwt', config.jwtSession), customers.change_password);
 };
