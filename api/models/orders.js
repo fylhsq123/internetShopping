@@ -20,9 +20,14 @@ var mongoose = require('mongoose'),
             },
             price: {
                 type: Number,
-                require: true
+                required: true
             }
-        }]
+        }],
+        dwh_deleted: {
+            type: Boolean,
+            required: true,
+            default: false
+        }
     }, {
         timestamps: {
             createdAt: 'dwh_created_date',
