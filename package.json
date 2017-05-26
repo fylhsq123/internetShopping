@@ -7,8 +7,8 @@
     "test-functional": "SET NODE_ENV=test&&mocha --timeout 10000 test/**/*.js",
     "test-unit": "SET NODE_ENV=test&&mocha --timeout 10000 api/**/*.spec.js",
     "test": "echo Running functional tests && npm run test-functional && echo Running unit tests && npm run test-unit",
-    "coverage-functional": "istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec test/**/*",
-    "coverage-unit": "istanbul cover ./node_modules/mocha/bin/_mocha -- api/**/*.spec.js",
+    "coverage-functional": "SET NODE_ENV=test&&istanbul cover ./node_modules/mocha/bin/_mocha -- -R spec test/**/*",
+    "coverage-unit": "SET NODE_ENV=test&&istanbul cover ./node_modules/mocha/bin/_mocha -- api/**/*.spec.js",
     "start": "SET NODE_ENV=dev&&nodemon server.js"
   },
   "author": "Andrii Heptinh",
