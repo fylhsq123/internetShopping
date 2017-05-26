@@ -1,82 +1,58 @@
 'use strict';
 
-var sinon = require('sinon'),
-    common = require('./common.js');
+var module = require('./common.js');
 
-describe('COMMON unit tests', () => {
-    describe('File loading tests', () => {
-        it('should call sendFile function without calling next or send', () => {
-            var req = {
-                    params: {
-                        sourceId: "FileName.ext"
-                    }
-                },
-                res = {
-                    sendFile: () => {},
-                    status: () => {},
-                    send: () => {}
-                },
-                nextSpy = sinon.spy(),
-                sendfileStub = sinon.stub(res, 'sendFile'),
-                statusSpy = sinon.spy(res, 'status'),
-                sendSpy = sinon.spy(res, 'send');
+describe('COMMON unit tests', function () {
+	describe('File loading tests', function () {
+		beforeEach(function () {
+			this.req = {
+				params: {
+					sourceId: "FileName.ext"
+				}
+			};
+			this.res = {
+				sendFile: () => {},
+				status: function () {
+					return this;
+				},
+				send: () => {}
+			};
+			this.nextSpy = this.sandbox.spy();
+			this.sendfileStub = this.sandbox.stub(this.res, 'sendFile');
+			this.statusSpy = this.sandbox.spy(this.res, 'status');
+			this.sendSpy = this.sandbox.spy(this.res, 'send');
+		});
+		it('should call sendFile function without calling next or send', function () {
+			this.sendfileStub.yields();
+			module.load_source(this.req, this.res, this.nextSpy);
 
-            sendfileStub.yields();
-            common.load_source(req, res, nextSpy);
-            sendfileStub.restore();
+			this.sendfileStub.should.have.been.calledOnce;
+			this.statusSpy.should.have.not.been.called;
+			this.sendSpy.should.have.not.been.called;
+			this.nextSpy.should.have.not.been.called;
+		});
+		it('should send error 404 if err.status is equal 404', function () {
+			this.sendfileStub.yields({
+				status: 404
+			});
+			module.load_source(this.req, this.res, this.nextSpy);
 
-            sinon.assert.calledOnce(sendfileStub);
-            sinon.assert.notCalled(statusSpy);
-            sinon.assert.notCalled(sendSpy);
-            sinon.assert.notCalled(nextSpy);
-        });
-        it('should throw error 404 if err.status is equal 404', () => {
-            var req = {
-                    params: {
-                        sourceId: "FileName.ext"
-                    }
-                },
-                res = {
-                    sendFile: () => {},
-                    status: function () {
-                        return this;
-                    },
-                    send: () => {}
-                },
-                nextSpy = sinon.spy(),
-                sendfileStub = sinon.stub(res, 'sendFile'),
-                statusSpy = sinon.spy(res, 'status'),
-                sendSpy = sinon.spy(res, 'send');
+			this.sendfileStub.should.have.been.calledOnce;
+			this.statusSpy.should.have.been.calledWithMatch(404);
+			this.sendSpy.should.have.been.calledOnce;
+		});
+		it('should call next function with error object', function () {
+			this.sendfileStub.yields(this.errObj);
+			module.load_source(this.req, this.res, this.nextSpy);
 
-            sendfileStub.yields({
-                status: 404
-            });
-            common.load_source(req, res, nextSpy);
-            sendfileStub.restore();
-
-            sinon.assert.calledOnce(sendfileStub);
-            sinon.assert.calledOnce(sendSpy);
-            sinon.assert.calledWithMatch(statusSpy, 404);
-        });
-        it('should call next function with error object', () => {
-            var req = {
-                    params: {
-                        sourceId: "FileName.ext"
-                    }
-                },
-                res = {
-                    sendFile: () => {},
-                    status: () => {},
-                    send: () => {}
-                },
-                nextSpy = sinon.spy(),
-                sendfileStub = sinon.stub(res, 'sendFile');
-
-            sendfileStub.yields({});
-            common.load_source(req, res, nextSpy);
-            sendfileStub.restore();
-
-            sinon.assert.calledOnce(nextSpy);
-        });
-    });
+			this.statusSpy.should.have.not.been.called;
+			this.sendSpy.should.have.not.been.called;
+			this.nextSpy.should.have.been.calledOnce;
+			this.nextSpy.args[0][0].should.have.property('err');
+			this.nextSpy.args[0][0].err.should.be.equal(this.errObj);
+		});
+		afterEach(function () {
+			this.sendfileStub.restore();
+		});
+	});
 });
