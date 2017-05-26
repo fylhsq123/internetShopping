@@ -17,9 +17,7 @@ exports.list_all_countries = function (req, res, next) {
 };
 
 exports.list_all_cities = function (req, res, next) {
-	CountriesCities.findById({
-		"_id": req.params.countryId
-	}, 'cities', function (err, cities) {
+	CountriesCities.findById(req.params.countryId, 'cities', function (err, cities) {
 		if (err) {
 			next({
 				'msg': 'Error reading cities',
