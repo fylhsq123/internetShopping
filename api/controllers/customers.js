@@ -228,6 +228,10 @@ exports.authenticate_customer = function (req, res, next) {
 			'dwh_deleted': false
 		})
 		.select(config.technicalFields)
+		.populate({
+			path: 'role_id',
+			select: '-_id name type'
+		})
 		.exec(function (err, customer) {
 			if (err) {
 				next({
