@@ -10,7 +10,7 @@ module.exports = {
 		}
 	},
 	'upload_dir': './uploads/',
-	'database': 'mongodb://localhost:27017/internetShopping_PROD',
+	'database': 'mongodb://localhost:27017/internetShopping',
 	'technicalFields': {
 		'__v': 0,
 		'dwh_deleted': 0,
