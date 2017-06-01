@@ -32,7 +32,7 @@ var
 	http = require('http').Server(app),
 	io = require('socket.io')(http);
 
-mongoose.Promise = global.Promise;
+mongoose.Promise = require('bluebird');
 
 // Use CORS
 app.use(cors());
