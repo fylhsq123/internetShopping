@@ -22,6 +22,12 @@ describe('COMMON unit tests', function () {
 			this.statusSpy = this.sandbox.spy(this.res, 'status');
 			this.sendSpy = this.sandbox.spy(this.res, 'send');
 		});
+		afterEach(function () {
+			this.sendfileStub.restore();
+			this.nextSpy.reset();
+			this.statusSpy.reset();
+			this.sendSpy.reset();
+		});
 		it('should call sendFile function without calling next or send', function () {
 			this.sendfileStub.yields();
 			module.load_source(this.req, this.res, this.nextSpy);
@@ -50,9 +56,6 @@ describe('COMMON unit tests', function () {
 			this.nextSpy.should.have.been.calledOnce;
 			this.nextSpy.args[0][0].should.have.property('err');
 			this.nextSpy.args[0][0].err.should.be.equal(this.errObj);
-		});
-		afterEach(function () {
-			this.sendfileStub.restore();
 		});
 	});
 });
