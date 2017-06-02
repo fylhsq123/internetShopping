@@ -232,13 +232,7 @@ exports.authenticate_customer = function (req, res, next) {
 			path: 'role_id',
 			select: '-_id name type'
 		})
-		.exec(function (err, customer) {
-			if (err) {
-				next({
-					'msg': 'Customer authorization error',
-					'err': err
-				});
-			}
+		.exec().then(function (customer) {
 			if (!customer) {
 				respObj.success = false;
 				respObj.response.msg = "Authentication failed. Customer not found";
@@ -276,6 +270,11 @@ exports.authenticate_customer = function (req, res, next) {
 					}
 				});
 			}
+		}).catch(function (err) {
+			next({
+				'msg': 'Customer authorization error',
+				'err': err
+			});
 		});
 };
 
