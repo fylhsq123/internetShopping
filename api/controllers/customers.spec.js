@@ -24,7 +24,7 @@ describe("CUSTOMERS unit tests", function () {
 		this.sandbox.stub(Customers, "exec").callsFake(fakeCall);
 		this.sandbox.stub(Customers, "then").callsFake(fakeCall);
 		this.sandbox.stub(Customers, "catch").callsFake(fakeCall);
-		this.sandbox.stub(Customers, "save");
+		this.saveStub = this.sandbox.stub(Customers.prototype, "save");
 		this.customer = Object.assign({}, this.testObj, {
 			comparePassword: this.sandbox.stub(),
 			toObject: this.sandbox.stub().callsFake(() => {
@@ -70,7 +70,7 @@ describe("CUSTOMERS unit tests", function () {
 		Customers.exec.restore();
 		Customers.then.restore();
 		Customers.catch.restore();
-		Customers.save.restore();
+		this.saveStub.restore();
 		this.CustomersMock.restore();
 		delete this.req;
 		delete this.res;
@@ -157,9 +157,46 @@ describe("CUSTOMERS unit tests", function () {
 		});
 	});
 	describe('Creating new customer', function () {
-		it.skip('should be possible to register new customer', function () {
+		it('should be possible to register new customer', function () {
+			this.saveStub.yields(null, this.customer);
 			module.create_customer(this.req, this.res, this.nextSpy);
-			Customers.save.should.have.been.calledOnce;
+
+			this.nextSpy.should.have.not.been.called;
+			this.saveStub.should.have.been.calledOnce;
+			this.statusSpy.should.have.been.calledOnce.and.calledWithExactly(201);
+			this.sendSpy.should.have.been.calledOnce;
+		});
+		it('should handle ValidationError', function () {
+			this.saveStub.yields({
+				name: 'ValidationError'
+			}, null);
+			module.create_customer(this.req, this.res, this.nextSpy);
+
+			this.nextSpy.should.have.not.been.called;
+			this.saveStub.should.have.been.calledOnce;
+			this.statusSpy.should.have.been.calledOnce.and.calledWithExactly(400);
+			this.sendSpy.should.have.been.calledOnce;
+		});
+		it('should handle duplicates', function () {
+			this.saveStub.yields({
+				code: 11000
+			}, null);
+			module.create_customer(this.req, this.res, this.nextSpy);
+
+			this.nextSpy.should.have.not.been.called;
+			this.saveStub.should.have.been.calledOnce;
+			this.statusSpy.should.have.been.calledOnce.and.calledWithExactly(409);
+			this.sendSpy.should.have.been.calledOnce;
+		});
+		it('should handle other errors', function () {
+			this.saveStub.yields(this.errObj, null);
+			module.create_customer(this.req, this.res, this.nextSpy);
+
+			this.saveStub.should.have.been.calledOnce;
+			this.statusSpy.should.have.not.been.called;
+			this.sendSpy.should.have.not.been.called;
+			this.nextSpy.should.have.been.calledOnce;
+			this.nextSpy.args[0][0].err.should.be.equal(this.errObj);
 		});
 	});
 	describe('Updating information about customer', function () {
@@ -344,9 +381,64 @@ describe("CUSTOMERS unit tests", function () {
 		});
 	});
 	describe('Changing password', function () {
-		it.skip('should be possible to change password', function () {
+		it('should be possible to change password', function () {
 			Customers.then.yields(this.customer);
 			module.change_password(this.req, this.res, this.nextSpy);
+
+			this.nextSpy.should.have.not.been.called;
+			this.customer.save.should.have.been.calledOnce;
+			this.statusSpy.should.have.been.calledOnce.and.calledWithExactly(200);
+			this.sendSpy.should.have.been.calledOnce;
+		});
+		it('should handle error that were got from Mongoose', function () {
+			Customers.catch.yields(this.errObj);
+			module.change_password(this.req, this.res, this.nextSpy);
+
+			Customers.findOne.should.have.been.calledOnce.and.calledWith({
+				'_id': this.req.user._id,
+				'dwh_deleted': false
+			});
+			this.statusSpy.should.have.not.been.called;
+			this.sendSpy.should.have.not.been.called;
+			this.nextSpy.should.have.been.calledOnce;
+			this.nextSpy.args[0][0].err.should.be.equal(this.errObj);
+		});
+		it('should send error 400 if password was not specified', function () {
+			this.req.body.password = '';
+			module.change_password(this.req, this.res, this.nextSpy);
+
+			this.nextSpy.should.have.not.been.called;
+			this.statusSpy.should.have.been.calledOnce.and.calledWithExactly(400);
+			this.sendSpy.should.have.been.calledOnce;
+		});
+	});
+	describe('Customer logout', function () {
+		it('should logout customer', function () {
+			Customers.exec.yields(null, this.customer);
+			module.logout_customer(this.req, this.res, this.nextSpy);
+
+			this.statusSpy.should.have.not.been.called;
+			this.nextSpy.should.have.not.been.called;
+			this.sendSpy.should.have.been.calledOnce;
+			this.sendSpy.args[0][0].should.have.property('token');
+			this.sendSpy.args[0][0].token.should.not.be.empty;
+		});
+		it('should handle error that were got from Mongoose', function () {
+			Customers.exec.yields(this.errObj, null);
+			module.logout_customer(this.req, this.res, this.nextSpy);
+
+			this.statusSpy.should.have.not.been.called;
+			this.sendSpy.should.have.not.been.called;
+			this.nextSpy.should.have.been.calledOnce;
+			this.nextSpy.args[0][0].err.should.be.equal(this.errObj);
+		});
+		it('should send 403 (Logout failed) if customer was not found', function () {
+			Customers.exec.yields(null, null);
+			module.logout_customer(this.req, this.res, this.nextSpy);
+
+			this.nextSpy.should.have.not.been.called;
+			this.statusSpy.should.have.been.calledOnce.and.calledWithExactly(403);
+			this.sendSpy.should.have.been.calledOnce;
 		});
 	});
 });
