@@ -318,7 +318,7 @@ exports.logout_customer = function (req, res, next) {
 		.select(config.technicalFields)
 		.exec(function (err, customer) {
 			if (err) {
-				next({
+				return next({
 					'msg': 'Error occured',
 					'err': err
 				});
