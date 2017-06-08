@@ -1,11 +1,33 @@
 "use strict";
 var Products = require('../models/products'),
+    // Promise = require('bluebird'),
+    fs = require('fs'),
+    formidable = require('formidable'),
     module = require('./products');
 describe("PRODUCTS unit tests", function () {
     beforeEach(function () {
+        var _this = this;
+
         function fakeCall() {
             return Products;
         }
+        this.product = Object.assign({}, this.testObj, {
+            _id: 'ProductID',
+            toObject: this.sandbox.stub().callsFake(() => {
+                console.log(this._id);
+                return this.product;
+            }),
+            save: this.sandbox.stub()
+        });
+        // this.bluebirdThenStub = this.sandbox.stub(Promise.prototype, 'then').callsFake(function () {
+        //     return this;
+        // });
+        // this.bluebirdCatchStub = this.sandbox.stub(Promise.prototype, 'catch');
+        this.renameSyncStub = this.sandbox.stub(fs, 'renameSync');
+        this.formParseStub = this.sandbox.stub(formidable.IncomingForm.prototype, 'parse');
+        this.modelSaveStub = this.sandbox.stub(Products.prototype, 'save').callsFake(() => {
+            return this.product;
+        });
         Object.assign(Products, {
             select: function () {},
             sort: function () {},
@@ -34,9 +56,12 @@ describe("PRODUCTS unit tests", function () {
                 }
             },
             params: {
-                productId: 'ProductID'
+                productId: ''
             },
-            query: {}
+            query: {},
+            cookies: {
+                io: 'SocketClientID'
+            }
         };
         this.res = {
             send: () => {},
@@ -49,6 +74,9 @@ describe("PRODUCTS unit tests", function () {
         this.sendSpy = this.sandbox.spy(this.res, "send");
     });
     afterEach(function () {
+        this.renameSyncStub.restore();
+        this.formParseStub.restore();
+        this.modelSaveStub.restore();
         this.ProductsMock.restore();
         Products.find.restore();
         Products.findById.restore();
@@ -69,12 +97,113 @@ describe("PRODUCTS unit tests", function () {
     });
     describe('Listing products', function () {
         it('should be possible to list all products', function () {
+            Products.exec.yields(null, this.testObj);
             module.list_all_products(this.req, this.res, this.nextSpy);
+
+            this.sendSpy.should.have.been.calledOnce.and.calledWithExactly(this.testObj);
+            Products.find.args[0][0].should.have.property('$and');
+            Products.find.args[0][0].$and.should.be.an('array');
+            Products.find.args[0][0].$and[0].should.have.property('dwh_deleted');
+            Products.find.args[0][0].$and[0].dwh_deleted.should.be.equal(false);
+        });
+        it('should handle different types of errors', function () {
+            Products.exec.yields(this.errObj);
+            module.list_all_products(this.req, this.res, this.nextSpy);
+
+            this.sendSpy.should.have.not.been.called;
+            this.nextSpy.should.have.been.calledOnce;
+            this.nextSpy.args[0][0].err.should.be.equal(this.errObj);
+        });
+        it('should be possible to get one product by ID', function () {
+            this.req.params.productId = 'ProductID';
+            module.list_all_products(this.req, this.res, this.nextSpy);
+
+            Products.find.args[0][0].should.have.property('_id');
+            Products.find.args[0][0]._id.should.be.equal(this.req.params.productId);
+            Products.find.args[0][0].should.have.property('$and');
+            Products.find.args[0][0].$and.should.be.an('array');
+            Products.find.args[0][0].$and[0].should.have.property('dwh_deleted');
+            Products.find.args[0][0].$and[0].dwh_deleted.should.be.equal(false);
+        });
+        it('should be possible to filter list of products by seller and subcategory and order ', function () {
+            this.req.query.seller = 'SellerID';
+            this.req.query.subcategory = 'SubcategoryID';
+            this.req.query.sort = 'field';
+            this.req.query.order = 'asc';
+            module.list_all_products(this.req, this.res, this.nextSpy);
+
+            Products.find.args[0][0].should.have.property('$and');
+            Products.find.args[0][0].$and.should.be.an('array');
+            Products.find.args[0][0].$and.should.include({
+                dwh_deleted: false
+            }).and.include({
+                subcategory_id: this.req.query.subcategory
+            }).and.include({
+                seller_id: this.req.query.seller
+            });
+            Products.sort.args[0][0].should.have.property(this.req.query.sort);
+            Products.sort.args[0][0][this.req.query.sort].should.be.equal(this.req.query.order === 'desc' ? -1 : 1);
+        });
+        it('should create correct query for loading part of the data starting from specified _id', function () {
+            this.req.query.lastid = 'LastElementID';
+            module.list_all_products(this.req, this.res, this.nextSpy);
+
+            Products.find.args[0][0].should.have.property('$and');
+            Products.find.args[0][0].$and.should.be.an('array');
+            Products.find.args[0][0].$and.should.include({
+                dwh_deleted: false
+            }).and.include({
+                _id: {
+                    '$gt': this.req.query.lastid
+                }
+            });
+        });
+        it('should create correct query for loading part of the data starting from specified element in correct sort order', function () {
+            this.req.query.lastid = 'LastElementID';
+            this.req.query.lastval = 'ValueFromSortField';
+            this.req.query.sort = 'field';
+            this.req.query.order = 'asc';
+            module.list_all_products(this.req, this.res, this.nextSpy);
+
+            Products.find.args[0][0].should.have.property('$and');
+            Products.find.args[0][0].$and.should.be.an('array');
+            Products.find.args[0][0].$and.should.include({
+                dwh_deleted: false
+            }).and.include({
+                $or: [{
+                    [this.req.query.sort]: {
+                        '$gt': this.req.query.lastval
+                    }
+                }, {
+                    $and: [{
+                        [this.req.query.sort]: this.req.query.lastval
+                    }, {
+                        _id: {
+                            $gt: this.req.query.lastid
+                        }
+                    }]
+                }]
+            });
         });
     });
     describe('Creating new product', function () {
-        it.skip('should be possible to create new product', function () {
+        it('should be possible to create new product', function () {
+            var files = {
+                    'image': {
+                        type: 'image/jpeg',
+                        name: 'fileName.ext',
+                        path: 'temporaryFilePath'
+                    }
+                },
+                fields = {
+                    'field': 'value'
+                };
+            Products.exec.callsFake(() => {
+                return this.product;
+            });
             this.req.user.role_id.type = 'seller';
+            this.formParseStub.yields(null, fields, files);
+            // this.bluebirdThenStub.yields(this.testObj);
             module.create_new_product(this.req, this.res, this.nextSpy);
         });
         it('should send error 403 if someone except seller or admin is trying to create new product', function () {
